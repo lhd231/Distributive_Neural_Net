@@ -1,180 +1,212 @@
-# -*- coding: utf-8 -*-
-"""
-Created on Thu Apr 28 12:48:56 2016
-
-@author: LHD
-"""
-
 import numpy as np
-import random
-import pandas as pd
+import math
+from sklearn.preprocessing import LabelBinarizer
+import pylab as plt
+#import ipdb
 
 
+def _relu(x, eps=1e-5): return max(eps, x)
 
-class neuralNetwork:
-    
-    model = {}
-    
-    i = 0
-    
-    Z = np.array
-    X = np.array
-    y = np.array
-    num_examples = 1
-    nn_input_dim = 784 #Dimensionality of the input layer
-    nn_output_dim = 2 #Dimensionality of output layer
-    
-    epsilon = .01 #learning rate
-    reg_lambda = .01 #regularization strength
-    
-    W1 = np.array #Weights between the input layer and hidden layer
-    b1 = np.array
-    W2 = np.array #Weights between hidden and output
-    b2 = np.array
-    
-    a1 = np.array
-    def __init__(self,D, y):
-        self.Z = D
-        self.X = self.Z[0]
-        self.y = y
+
+def _d_relu(x, eps=1e-5): return 1. if x > eps else 0.0
+
+
+def _sigmoid(x): return 1 / (1 + math.exp(-x))
+
+
+def _tanh(x): return math.tanh(x)
+
+
+def _d_tanh(x):
+    t = _tanh(x)
+    return 1 - t*t
+
+
+def _d_sigmoid(x):
+    s = _sigmoid(x)
+    return s * (1 - s)
+
+#2 sites, 50 items.  To 50 sites, 2 items
+def d_cost(output, target): return output - target
+
+
+sigmoid = np.vectorize(_sigmoid)
+d_sigmoid = np.vectorize(_d_sigmoid)
+relu = np.vectorize(_relu)
+d_relu = np.vectorize(_d_relu)
+tanh = np.vectorize(_tanh)
+d_tanh = np.vectorize(_d_tanh)
+
+
+def activate(act):
+    """
+    Returns a function and derivative tuple
+    :param act: 'sigmoid', 'tanh', or 'ReLU'
+    :return: a tuple of functions (fun, grad)
+    """
+    if act == 'sigmoid': return (sigmoid, d_sigmoid)
+    if act == 'relu': return (relu, d_relu)
+    if act == 'tanh': return (tanh, d_tanh)
+
+def addadadelta(nn):
+    # need to add error checking if weights have been already initialized
+    nn['E2'] = {}
+    nn['E2']['W'] = []
+    nn['E2']['b'] = []
+    nn['EW2'] = {}
+    nn['EW2']['W'] = []
+    nn['EW2']['b'] = []
+    for i in range(len(nn['weights'])):
+        nn['E2']['W'].append(np.zeros(nn['weights'][i].shape))
+        nn['E2']['b'].append(np.zeros(nn['biases'][i].shape))
+        nn['EW2']['W'].append(np.zeros(nn['weights'][i].shape))
+        nn['EW2']['b'].append(np.zeros(nn['biases'][i].shape))
         
-    def calculate_loss(self,model):
-        W1, b1, W2, b2 = model['W1'], model['b1'], model['W2'], model['b2']
-        #forward propagation
-        z1 = self.X.dot(W1) + b1
-        a1 = np.tanh(z1)
-        z2 = a1.dot(W2) + b2
-        exp_scores = np.exp(z2)
-        probs = exp_scores / np.sum(exp_scores, axis=1, keepdims=True)
-        #calculate the loss
-        correct_logprobs = -np.log(probs[range(self.num_examples), y])
-        data_loss = np.sum(correct_logprobs)
-        #Add regularization term to loss
-        data_loss += self.reg_lambda/2 * (np.sum(np.square(W1))) + np.sum(np.square(W2))
-        return 1./self.num_examples * data_loss
-        
-    def predict(self,model, x):
-        W1, b1, W2, b2 = model['W1'], model['b1'], model['W2'], model['b2']
-        # Forward propagation
-        z1 = x.dot(W1) + b1
-        a1 = np.tanh(z1)
-        z2 = a1.dot(W2) + b2
-        exp_scores = np.exp(z2)
-        probs = exp_scores / np.sum(exp_scores, axis=1, keepdims=True)
-        return np.argmax(probs, axis=1)
-        
-    #Create the model by setting the number of nodes per layer and
-    #and randomize the weights with a given seed
-    def create_model(self,seed,nn_hdim):
-        np.random.seed(seed)
-        self.W1 = np.random.randn(self.nn_input_dim, nn_hdim) / np.sqrt(self.nn_input_dim)
-        self.b1 = np.zeros((1, nn_hdim))
-        self.W2 = np.random.randn(nn_hdim, self.nn_output_dim) / np.sqrt(nn_hdim)
-        self.b2 = np.zeros((1, self.nn_output_dim))
-    
-    #Do a single test and return the delta 3
-    def forward_propagation(self, s):
-        #Given a number i, pick that member of the dataset
-        #should be random
-        #np.random.seed(s)
-
-        self.i = random.randint(0,len(self.Z)-1)
-      
-        self.X = np.array(self.Z[self.i])[np.newaxis]
-                
-        # Forward propagation
-        z1 = self.X.dot(self.W1) + self.b1
-        self.a1 = np.tanh(z1)
-        z2 = self.a1.dot(self.W2) + self.b2
-        exp_scores = np.exp(z2)
-        probs = exp_scores / np.sum(exp_scores, axis=1, keepdims=True)
-        delta3 = probs
-        delta3[range(self.num_examples), y[self.i]] -= 1        
-        return delta3
-    
-    def back_propagation(self, delta3):
-        # Backpropagation
+def weight_matrix(seed, innum, outnum, type='glorot', layer=0):
+    """
+    Returns randomly initialized weight matrix of appropriate dimensions
+    :param innum: number of neurons in the layer i
+    :param outnum: number of neurons in layer i+1
+    :return: weight matrix
+    """
+    np.random.seed(seed)
+    if type == 'glorot': W = np.random.uniform(low=-np.sqrt(6.0/(2*layer+1)), high=np.sqrt(6.0/(2*layer+1)), size=(outnum, innum))
+    if type == 'normal': W = np.random.rand(outnum, innum)   
+    return W
 
 
-        self.X = np.array(self.Z[self.i])[np.newaxis]
-        dW2 = (self.a1.T).dot(delta3)
-        db2 = np.sum(delta3, axis=0, keepdims=True)
-        delta2 = delta3.dot(self.W2.T) * (1 - np.power(self.a1, 2))
-        dW1 = np.dot(self.X.T, delta2)
-        db1 = np.sum(delta2, axis=0)
-        
-        # Add regularization terms (b1 and b2 don't have regularization terms)
-        dW2 += self.reg_lambda * self.W2
-        dW1 += self.reg_lambda * self.W1
-        
-        # Gradient descent parameter update
-        self.W1 += -self.epsilon * dW1
-        self.b1 += -self.epsilon * db1
-        self.W2 += -self.epsilon * dW2
-        self.b2 += -self.epsilon * db2
-        
-        # Assign new parameters to the model
-        self.model = { 'W1': self.W1, 'b1': self.b1, 'W2': self.W2, 'b2': self.b2}
-            
-            
-    def get_model(self):
-        return self.model
-
-       
-np.random.seed(0)
-
-    # read data as array
-img_data = np.asarray(pd.read_csv("train.csv", sep=',', header=None, low_memory=False))
-    # get labels
-labels = np.asarray(img_data[1:,0], np.dtype(int))
-    # omit header and labels
-img_data = img_data[1:,1:]
-imgs = []   
-y = []
-print len(img_data)
-print "before load"
-for i in range(len(img_data)):
-    if labels[i] == 8:
-         y.append(0)
-         img = img_data[i]
-         imgs.append(img)
-    elif labels[i] == 1:
-        y.append(1)
-        img = img_data[i]
-        imgs.append(img)
+def nn_build(seed,layerlist, nonlin='sigmoid', eta=0.01, init='glorot'):
+    """
+    Returns a neural network of given architecture
+    :param layerlist: a list of number of neurons in each layer starting with input and ending with output
+    :param nonlin: nonlinearity which is either 'sigmoid', 'tanh', or 'ReLU'
+    :return: a dictionary with neural network parameters
+    """
+    nn = {}
+    nn['eta'] = eta
+    nn['weights'] = []
+    nn['biases'] = []
+    nn['nonlin'] = []
+    for i in range(len(layerlist) - 1):
+        nn['weights'].append(weight_matrix(seed,layerlist[i], layerlist[i + 1],layer=i,type=init))
+        nn['biases'].append(np.ones(layerlist[i + 1]) * 0.1)
+        nn['nonlin'].append(activate(nonlin))
+    addadadelta(nn)
+    return nn
 
 
-X = np.asarray(imgs, np.dtype(float))
-print len(y)
-print len(X)
-print "after load"
-Z1 = np.asarray(X[0:len(X)/2])
-Z2 = np.asarray(X[len(X)/2:len(X)])
-y1 = np.asarray(y[0:len(y)/2])
-y2 = np.asarray(y[len(y)/2:len(y)])
-print "after parsing"
+def forward(nn, data):
+    """
+    Given a dictionary representing a feed forward neural net and an input data matrix compute the network's output and store it within the dictionary
+    :param nn: neural network dictionary
+    :param data: a numpy n by m matrix where m in the number of input units in nn
+    :return: the output layer activations
+    """
+    nn['activations'] = [data]
+    nn['zs'] = []
+    for w, s, b in map(None, nn['weights'], nn['nonlin'], nn['biases']):
+        z = np.dot(w, nn['activations'][-1]).T + b
+        nn['zs'].append(z.T)
+        nn['activations'].append(s[0](z.T))
+    return nn['activations'][-1]
 
-answer = 0.0
-NN = neuralNetwork(Z1,y1)
-NN.create_model(15,3)
-print "after net 1"
-NN2 = neuralNetwork(Z2,y2)
-NN2.create_model(15,3)
-print "after net 2"
-model = {}
-print len(Z1)
-for i in range(len(Z1)):
-    d1 = NN.forward_propagation(i)
-    d2 = NN2.forward_propagation(i)
-    
-    avg = (d1+d2)/2
-    NN.back_propagation(d1)
-    NN2.back_propagation(avg)
-print "after process"
-model = NN.get_model()
 
-for i in range(len(Z1)):
-    if NN.predict(model,Z1[i]) == y1[i]:
-        answer += 1
-print answer / len(Z1)
+def test_forward():
+    nn = {}
+    nn['eta'] = 0.1
+    nn['weights'] = [np.array([[0.1, 0.2], [0.2, 0.5], [0.3, 0.4]]), np.array(np.array([0.1, 0.3, 0.2]))]
+    nn['biases'] = [np.ones(3) * 0.1, np.ones(1) * 0.1]
+    nn['nonlin'] = [(sigmoid, d_sigmoid)]
+    x = np.array([1, 0])
+    t = sigmoid(np.dot(nn['weights'][1], sigmoid(np.dot(nn['weights'][0], x) + nn['biases'][0]) + nn['biases'][1]))
+    #ipdb.set_trace()
+    print forward(nn, x)
+    print t
 
+
+def average_gradient(deltas, activations):
+    dW = 0
+    for i in range(deltas.shape[1]):
+        dW += np.outer(deltas[:,i], activations[:,i].T)
+    return dW#/deltas.shape[1]
+
+def gradient(nn, delta):
+ 
+    nabla_b = []
+    nabla_w = []
+
+    # output
+    dact = nn['nonlin'][-1][1]
+    dW = average_gradient(delta*dact(nn['zs'][-1]), nn['activations'][-2])
+    nabla_b.append(np.mean(delta, axis=1))
+    nabla_w.append(dW)
+
+    for i in range(len(nn['weights']) - 2, -1, -1):
+        dact = nn['nonlin'][i][1]
+        delta = np.dot(nn['weights'][i+1].T, delta * dact(nn['zs'][i+1]))
+
+        dW = average_gradient(delta,nn['activations'][i])
+        nabla_b.append(np.mean(delta*dact(nn['zs'][i]),axis=1))
+        nabla_w.append(dW)
+    return nabla_w, nabla_b
+
+
+def backprop(nn, nabla_w, nabla_b):
+    eta = nn['eta']
+
+    for i in range(len(nn['weights'])):
+        nn['weights'][i] -= eta * nabla_w[-i - 1]
+        nn['biases'][i] -= eta * nabla_b[-i - 1]
+
+
+def expand_labels(labels):
+    n = len(np.unique(labels))
+    # if n == 2:
+    #    l = np.array([(0,1) if row==0 else (1,0)  for row in labels]).T
+    # else:
+    lb = LabelBinarizer()
+    l = lb.fit_transform(labels).T
+    return l
+def master_node(nn,data,labels):
+    nabla_w = []
+    nabla_b = []
+    for net in nn:
+        r = forward(net, data)
+        delta = d_cost(r,labels)
+        w,b = gradient(net, delta)
+        nabla_w += w
+        nabla_b += b
+    nabla_w = [x / len(nn) for x in nabla_w]
+    nabla_b = [x / len(nn) for x in nabla_b]
+    for net in nn:
+        backprop(net,nabla_w,nabla_b)
+
+def minibatch_fit(nn, data, labels):
+    r = forward(nn, data)
+    dact = nn['nonlin'][-1][1]
+    delta = d_cost(r, labels) #* dact(nn['zs'][-1])
+    backprop(nn, delta)
+    # ipdb.set_trace()
+    return np.sqrt(np.sum(np.square(r - labels))) / 2
+
+
+def plot_decision2D(nn, data, labels, res=0.01):
+
+    # http://stackoverflow.com/questions/19054923/plot-decision-boundary-matplotlib?answertab=votes#tab-top
+    x_min, x_max = data[:, 0].min() - 1, data[:, 0].max() + 1
+    y_min, y_max = data[:, 1].min() - 1, data[:, 1].max() + 1
+    xx, yy = np.meshgrid(np.arange(x_min, x_max, res),
+                         np.arange(y_min, y_max, res))
+
+    Y = np.c_[xx.ravel(), yy.ravel()]
+    Z = np.array([round(forward(nn,x)[0]) for x in Y])
+
+    # Put the result into a color plot
+    Z = Z.reshape(xx.shape)
+    plt.hold(True)
+    plt.contourf(xx, yy, Z, cmap=plt.cm.Paired)
+    plt.axis('off')
+
+    # Plot also the training points
+    plt.scatter(data[:, 0], data[:, 1], c=labels, cmap=plt.cm.Paired)
+    plt.hold(False)
