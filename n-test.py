@@ -99,10 +99,10 @@ for i in range(len(nn1_groups_data)/2):
     t3 = [x for x in iter_minibatches(1,total_groups_data.T, total_groups_label)]
     err = []
     #Run the batches through the algos
-    visitClassicBatches(nnClassic1,t)
-    visitClassicBatches(nnClassic2,t2)
-    visitClassicBatches(nnClassic3,t3, it=100)
-    visitbatches(nets, batches, err, it=100)
+    visitClassicBatches(nnClassic1,t, it=1000)
+    visitClassicBatches(nnClassic2,t2, it=1000)
+    visitClassicBatches(nnClassic3,t3, it=1000)
+    visitbatches(nets, batches, err, it=1000)
     
     #calculate error
     classic = accuracyClassic(nnClassic1,validation_data,validation_label, thr=0.5)
