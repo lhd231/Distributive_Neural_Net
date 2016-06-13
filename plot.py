@@ -10,13 +10,14 @@ import seaborn
 import pandas as pd
 #plt.xlabel("Number of batches [of size 50]")
 #plt.ylabel("Error rate")
-c4 = np.loadtxt("classic4-trunc.txt")
-c3 = np.loadtxt("classAcc3-trunc.txt")
-c2 = np.loadtxt("classAcc2-trunc.txt")
-c1 = np.loadtxt("classAcc1-trunc.txt")
-dif = np.loadtxt("nn1Acc-trunc.txt")
+
+c4 = np.loadtxt("classic_combined_20k_wgtSample.txt")
+c3 = np.loadtxt("classic1_20k_wgtSample.txt")
+c2 = np.loadtxt("classic2_20k_wgtSample.txt")
+c1 = np.loadtxt("classic3_20k_wgtSample.txt")
+dif = np.loadtxt("diff_20k_wgtSample.txt")
 class2 = np.mean(c2, axis=0)
-print class2[0]
+
 class3 = np.mean(c3, axis=0)
 class1 = np.mean(c1, axis=0)
 differ = np.mean(dif,axis=0)
@@ -29,7 +30,7 @@ error = class3 + np.std(c3,axis=0)
 errLow = differ + np.std(dif,axis=0)
 errup = class1 + np.std(c1,axis=0)
 errDown = class4 + np.std(c4,axis=0)
-x = np.arange(len(class2))
+x = np.arange(len(class4))
 #plt.errorbar(x,class2,yerr=errHigh, label="Classic 1")
 #plt.errorbar(x,differ,yerr=errLow, label="differential")
 #plt.errorbar(x,class3,yerr=error, label="Classic Combined")
@@ -38,6 +39,7 @@ axe = np.array(["diff" for _ in range(10)])
 
 #print seaborn.load_dataset("tips")
 nw = np.c_[dif,axe]
+
 axe = np.array(["c3" for _ in range(10)])
 cw = np.c_[c3,axe]
 axe = np.array(["c1" for _ in range(10)])
@@ -51,7 +53,8 @@ fw = np.concatenate((fw,c1w), axis=0)
 #arrayfire
 fw = np.concatenate((fw,c2w), axis=0)
 fw = np.concatenate((fw,c3w), axis=0)
-s = pd.DataFrame(fw, columns=[10,20,40,60,80,"class"])
+#fw = c3w
+s = pd.DataFrame(fw, columns=[30,60,90,120,150,180,210,240,"class"])
 #seaborn.boxplot(data = fw, hue_order="class")
 #print s
 df_long = pd.melt(s, "class", var_name="sample size", value_name="error rate")
