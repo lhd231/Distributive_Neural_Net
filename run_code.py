@@ -10,6 +10,8 @@ import math
 import random
 from scipy.stats import multivariate_normal as norm
 from random import shuffle
+import theano
+
 
 minibatch = 2
 nonlin = 'relu'
@@ -110,7 +112,7 @@ number_of_nets = 3
 #Run the neural nets 10 times so we can find a more accurate curve
 for te in range(10):
     print te
-    data, label = make_moons(n_samples=1500, shuffle=True, noise=0.2,random_state = int(time.time()))
+    data, label = make_moons(n_samples=2000, shuffle=True, noise=0.2,random_state = int(time.time()))
     print data[0]
     data,validation_data,label,validation_label = train_test_split(data,label,train_size = .32)
     
