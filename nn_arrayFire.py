@@ -2,8 +2,8 @@ import numpy as np
 import math
 from sklearn.preprocessing import LabelBinarizer
 import pylab as plt
-#import ipdb
-
+import arrayfire as af
+af.set_device(1)
 
 def _relu(x, eps=1e-5): return max(eps, x)
 
@@ -70,8 +70,9 @@ def weight_matrix(seed, innum, outnum, type='glorot', layer=0):
     :return: weight matrix
     """
     np.random.seed(seed)
-    if type == 'glorot': W = np.random.uniform(low=-np.sqrt(6.0/(2*layer+1)), high=np.sqrt(6.0/(2*layer+1)), size=(outnum, innum))
-    if type == 'normal': W = np.random.rand(outnum, innum)   
+    if type == 'glorot': W = af.randu(innum,outnum) #np.random.uniform(low=-np.sqrt(6.0/(2*layer+1)), high=np.sqrt(6.0/(2*layer+1)), size=(outnum, innum))
+    if type == 'normal': W = af.randu(innum,outnum)# np.random.rand(outnum, innum)   
+   
     return W
 
 
@@ -85,26 +86,34 @@ def nn_build(seed,layerlist, nonlin='sigmoid', eta=0.01, init='glorot'):
     nn = {}
     nn['eta'] = eta
     nn['weights'] = []
+    weights = []
+    biases = []
     nn['biases'] = []
     nn['nonlin'] = []
     for i in range(len(layerlist) - 1):
         nn['weights'].append(weight_matrix(seed,layerlist[i], layerlist[i + 1],layer=i,type=init))
-        nn['biases'].append(np.ones(layerlist[i + 1]) * 0.1)
+        nn['biases'].append(af.constant(1,1,layerlist[i + 1]) * 0.1)
         nn['nonlin'].append(activate(nonlin))
-    addadadelta(nn)
+    
+    #nn['weights'] = weights
+    #nn['biases'] = biases
+    #addadadelta(nn)
     return nn
 
 
-def forward(nn, data):
+def forward(nn_np, data):
     """
     Given a dictionary representing a feed forward neural net and an input data matrix compute the network's output and store it within the dictionary
     :param nn: neural network dictionary
     :param data: a numpy n by m matrix where m in the number of input units in nn
     :return: the output layer activations
     """
+    nn = nn_np
     nn['activations'] = [data]
     nn['zs'] = []
     for w, s, b in map(None, nn['weights'], nn['nonlin'], nn['biases']):
+	print type(w[0])
+	print b
         z = np.dot(w, nn['activations'][-1]).T + b
         nn['zs'].append(z.T)
         nn['activations'].append(s[0](z.T))
