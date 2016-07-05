@@ -3,7 +3,7 @@ import math
 from sklearn.preprocessing import LabelBinarizer
 import pylab as plt
 import arrayfire as af
-af.set_device(1)
+#af.set_device(1)
 
 def _relu(x, eps=1e-5): return max(eps, x)
 
@@ -14,7 +14,7 @@ def _d_relu(x, eps=1e-5): return 1. if x > eps else 0.0
 def _sigmoid(x): return 1 / (1 + math.exp(-x))
 
 
-def _tanh(x): return math.tanh(x)
+def _tanh(x): return af.tanh(x)
 
 
 def _d_tanh(x):
@@ -70,8 +70,8 @@ def weight_matrix(seed, innum, outnum, type='glorot', layer=0):
     :return: weight matrix
     """
     np.random.seed(seed)
-    if type == 'glorot': W = af.randu(innum,outnum) #np.random.uniform(low=-np.sqrt(6.0/(2*layer+1)), high=np.sqrt(6.0/(2*layer+1)), size=(outnum, innum))
-    if type == 'normal': W = af.randu(innum,outnum)# np.random.rand(outnum, innum)   
+    if type == 'glorot': W = af.randu(outnum,innum) #np.random.uniform(low=-np.sqrt(6.0/(2*layer+1)), high=np.sqrt(6.0/(2*layer+1)), size=(outnum, innum))
+    if type == 'normal': W = af.randu(outnum,innum)# np.random.rand(outnum, innum)   
    
     return W
 
@@ -109,14 +109,38 @@ def forward(nn_np, data):
     :return: the output layer activations
     """
     nn = nn_np
-    nn['activations'] = [data]
+    arr = data.astype('f')
+    nn['activations'] = []
+    nn['activations'].append(1)
+    nn['activations'].append(1) 
+    x = af.randu(2,3)
+    y = af.randu(3)
+    af.matmul(x,y)   
     nn['zs'] = []
     for w, s, b in map(None, nn['weights'], nn['nonlin'], nn['biases']):
-	print type(w[0])
-	print b
-        z = np.dot(w, nn['activations'][-1]).T + b
-        nn['zs'].append(z.T)
-        nn['activations'].append(s[0](z.T))
+	
+	#:wq
+	#print af.transpose(nn['activations'][-1])
+
+
+
+	#print(type(nn['activations'][0]))
+	#print(nn['activations'][0])
+        z = w * nn['activations'][0]
+        b = af.transpose(b)
+	newB = b
+	print w.shape[0]
+	print w.shape[1]
+	for i in range(w.shape[1]-1):
+		newB = af.join(1,newB,b)
+	print z
+	print newB
+	p = z + newB
+	nn['zs'].append(p)
+	
+	q = af.tanh(p)
+	
+        nn['activations'].append(q)
     return nn['activations'][-1]
 
 
@@ -146,6 +170,7 @@ def gradient(nn, delta):
 
     # output
     dact = nn['nonlin'][-1][1]
+    print type(nn['zs'][-1])
     dW = average_gradient(delta*dact(nn['zs'][-1]), nn['activations'][-2])
     nabla_b.append(np.mean(delta, axis=1))
     nabla_w.append(dW)
@@ -179,9 +204,14 @@ def expand_labels(labels):
 def master_node(nn,data,labels):
     nabla_w = []
     nabla_b = []
+    print labels.shape
+    l = 1
     for net in nn:
+	print 'HERE IS NEW FORWARD PUSH'
         r = forward(net, data)
-        delta = d_cost(r,labels)
+	print data
+	print l
+        delta = d_cost(r,l)
         w,b = gradient(net, delta)
         nabla_w += w
         nabla_b += b
