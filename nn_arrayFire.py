@@ -5,16 +5,22 @@ import pylab as plt
 import arrayfire as af
 #af.set_device(1)
 
-def _relu(x, eps=1e-5): return max(eps, x)
+def _relu(x, eps=1e-5): 
+	print 'HERE ARE RELU'
+	return af.max(x)
 
 
 def _d_relu(x, eps=1e-5): return 1. if x > eps else 0.0
 
 
-def _sigmoid(x): return 1 / (1 + math.exp(-x))
+def _sigmoid(x): 
+	print "HERE ARE SIGMOID"
+	return 1 / (1 + af.exp(-x))
 
 
-def _tanh(x): return af.tanh(x)
+def _tanh(x): 
+	print 'HERE ARE TANH'
+	return af.tanh(x)
 
 
 def _d_tanh(x):
@@ -27,7 +33,9 @@ def _d_sigmoid(x):
     return s * (1 - s)
 
 #2 sites, 50 items.  To 50 sites, 2 items
-def d_cost(output, target): return output - target
+def d_cost(output, target): 
+	print "here is d cost"
+	return output - target
 
 
 sigmoid = np.vectorize(_sigmoid)
@@ -160,7 +168,9 @@ def test_forward():
 def average_gradient(deltas, activations):
     dW = 0
     for i in range(deltas.shape[1]):
-        dW += np.outer(deltas[:,i], activations[:,i].T)
+	print deltas[:,i]
+	print activations[:,i]
+        dW += af.matmulNT(deltas[:,i], activations[:,i])
     return dW#/deltas.shape[1]
 
 def gradient(nn, delta):
@@ -170,15 +180,20 @@ def gradient(nn, delta):
 
     # output
     dact = nn['nonlin'][-1][1]
-    print type(nn['zs'][-1])
-    dW = average_gradient(delta*dact(nn['zs'][-1]), nn['activations'][-2])
+    t = nn['zs'][-1]
+    print dact
+    asdf = dact(2)
+    print asdf
+    dW = average_gradient(delta*af.max(nn['zs'][-1]), nn['activations'][-2])
     nabla_b.append(np.mean(delta, axis=1))
     nabla_w.append(dW)
 
     for i in range(len(nn['weights']) - 2, -1, -1):
-        dact = nn['nonlin'][i][1]
-        delta = np.dot(nn['weights'][i+1].T, delta * dact(nn['zs'][i+1]))
-
+        dact = delta * af.max(nn['zs'][i+1])
+	trans = nn['weights'][i+1].T
+        delta = af.matmul(trans, dact)
+	print delta
+	print nn['activations'][i]
         dW = average_gradient(delta,nn['activations'][i])
         nabla_b.append(np.mean(delta*dact(nn['zs'][i]),axis=1))
         nabla_w.append(dW)
