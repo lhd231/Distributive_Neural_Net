@@ -22,16 +22,18 @@ def bias(data, label, bias):
   dnew = []
   lnew = []
   count = 0
-  print "LEN OF DATA "+ str(len(data)*bias)
-  print len(data)
+  totalCount = 500
   for x,y in zip(data,label):
-    if y == 0 and count < len(data) *bias:
-      dnew.append(x)
-      lnew.append(y)
-      count += 1
-    elif y == 1:
-      dnew.append(x)
-      lnew.append(y)
+    if totalCount > 0:
+      if y == 0 and count < totalCount *bias:
+	dnew.append(x)
+	lnew.append(y)
+	count += 1
+	totalCount -= 1
+      elif y == 1:
+	dnew.append(x)
+	lnew.append(y)
+	totalCount -= 1
   return dnew, lnew
 
 
