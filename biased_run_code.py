@@ -22,35 +22,38 @@ def bias(data, label, bias):
   dnew = []
   lnew = []
   count = 0
+  print "LEN OF DATA "+ str(len(data)*bias)
+  print len(data)
   for x,y in zip(data,label):
     if y == 0 and count < len(data) *bias:
       dnew.append(x)
       lnew.append(y)
       count += 1
-    else:
+    elif y == 1:
       dnew.append(x)
       lnew.append(y)
   return dnew, lnew
 
 
 #adagrad and adadelta  esp adadelta
-def iter_minibatches(chunksize, data, labels):
+def iter_minibatches(chunksize, data):
     # Provide chunks one by one
     chunkstartmarker = 0
     numsamples = data.shape[1]
     while chunkstartmarker < numsamples:
         chunkrows = range(chunkstartmarker,chunkstartmarker+chunksize)
-        X_chunk, y_chunk = data[:,chunkrows], labels[chunkrows]
-        yield X_chunk, y_chunk
+        X_chunk = data[:,chunkrows]
+        yield X_chunk
         chunkstartmarker += chunksize
 
 
-def visitbatches(nn, batches, errlist, it=1000):
+def visitbatches(nn, batches, labels, errlist, it=1000):
     for c in range(it):
-        for i in range(len(batches)):
-            batch = batches[i]
-            cc = np.mod(c,len(batch))
-            nnDif.master_node(nn, batch[cc][0], batch[cc][1])
+      nnDif.master_node(nn,batches,labels)
+        #for i in range(len(batches)):
+         #   batch = batches[i]
+          #  cc = np.mod(c,len(batch))
+           # nnDif.master_node(nn, batch[cc][0], batch[cc][1])
             #err.append(r)
 
 def visitClassicBatches(nn,data, it=1000):
@@ -67,7 +70,7 @@ def accuracyClassic(nn, data, label, thr = 0.5):
 
 def group_list(l, group_size):
     for i in xrange(0, len(l), group_size):
-        yield l[i:i+group_size]
+        yield np.asarray(l[i:i+group_size]).T
 #TODO:  make these guys 2D.  So we can avoid the problem of [(i+j)/2  + (k +l+m+n)] / 4
 
 def single_run(s):
@@ -79,9 +82,7 @@ def single_run(s):
       siteCount = 1
     if s == 100:
       siteCount = 2
-    data, label = make_moons(n_samples=2000, noise=0.05, shuffle=True, random_state = int(time.time()))
-        
-    data,validation_data,label,validation_label = train_test_split(data,label,train_size = .50)
+    
         #separate the data set into buckets
     #TODO: Move this guy to the loop
     #TODO: Split data and label
@@ -92,11 +93,16 @@ def single_run(s):
     #TODO:  Set this guy to an array. 2, 10, 100
     
     for te in range(10):
+      data, label = make_moons(n_samples=2000, noise=0.05, shuffle=True, random_state = int(time.time()))
+        
+      data,validation_data,label,validation_label = train_test_split(data,label,train_size = .50)
       print te
       biases = [.02,.04,.08,.14,.20,.25,.30,.35,.40,.45,.50]
       biasCount = 0
       for b in biases:
+	print b
 	nData, nLabel = (bias(data,label,b))
+	print len(nData)
 	total_data = list(group_list(nData,1))
 	total_label = list(group_list(nLabel,1))
         number_of_nets = s
@@ -120,6 +126,7 @@ def single_run(s):
         #print len(nn_groups_data[1])
         nets = list()  #Our differential networks
         batches = list() #a list to store every separate site set
+        labelBatches = list()
         #Lists for our error to be plotted later
         #FIXME:  Needs to fill batches only.  Really though?  Think about this more...
         #TODO:  run this guy when you get the chance.  10 samples, and check.  if it's not what you want,
@@ -132,7 +139,6 @@ def single_run(s):
         for x in range(number_of_nets):
             nets.append(nnDif.nn_build(1,[2,6,6,1],eta=eta,nonlin=nonlin))
 
-            #Build the two site data sets
 
         for k in range(number_of_nets):
              groups_data.append(np.asarray([item for sublist in nn_groups_data[k] for item in sublist]))        
@@ -143,17 +149,17 @@ def single_run(s):
              nnClassic3 = nnS.nn_build(1,[2,6,6,1],eta=eta,nonlin=nonlin)
 	    
         for ncount in range(number_of_nets):
-
-	  batches.append([x for x in iter_minibatches(1,groups_data[ncount].T, groups_label[ncount])])
+	  batches.append(groups_data[ncount])
+	  labelBatches.append(groups_label[ncount])
             #t = [x for x in iter_minibatches(2,total_groups_data.T, total_groups_label)]
             #t3 = [x for x in iter_minibatches(2,total_groups_data.T, total_groups_label)]
 	err = []
             #Run the batches through the algos
-	iters = 10000
+	iters = 20000
             #visitClassicBatches(nnClassic1,t, it=iters)
             #visitClassicBatches(nnClassic3,t3, it=iters)
 
-	visitbatches(nets, batches, err, it=iters)
+	visitbatches(nets, nn_groups_data, nn_groups_label, err, it=iters)
         
             #calculate error
             #classic = accuracyClassic(nnClassic1,validation_data,validation_label, thr=0.5)
@@ -174,6 +180,7 @@ nn1Acc = [[[0 for k in range(11)] for i in range(10)] for j in range(3)]
 number_of_nets = 10
 sites = [2,10,100]
 siteCount = [0,1,2]
+#single_run(2)
 pool.map(single_run,sites)
     
 	

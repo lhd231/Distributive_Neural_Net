@@ -170,15 +170,20 @@ def expand_labels(labels):
 def master_node(nn,data,labels):
     nabla_w = []
     nabla_b = []
-    for net in nn:
-        r = forward(net, data)
-        delta = d_cost(r,labels)
-        w,b = gradient(net, delta)
+    minim = data[0]
+    for item in data:
+      if len(item) < minim:
+	minim = len(item)
+    for i in range(minim):
+      for n in range(len(nn)):
+        r = forward(nn[n], data[n][i])
+        delta = d_cost(r,labels[n][i])
+        w,b = gradient(nn[n], delta)
         nabla_w += w
         nabla_b += b
-    nabla_w = [x / len(nn) for x in nabla_w]
-    nabla_b = [x / len(nn) for x in nabla_b]
-    for net in nn:
+      nabla_w = [x / len(nn) for x in nabla_w]
+      nabla_b = [x / len(nn) for x in nabla_b]
+      for net in nn:
         backprop(net,nabla_w,nabla_b)
 
 def minibatch_fit(nn, data, labels):
