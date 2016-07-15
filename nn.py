@@ -170,12 +170,17 @@ def expand_labels(labels):
 def master_node(nn,data,labels):
     nabla_w = []
     nabla_b = []
-    minim = data[0]
-    for item in data:
-      if len(item) < minim:
-	minim = len(item)
+    minim = len(data[0])
+    maxim = len(data[0])
+    newData = np.fliplr(np.asarray(data))
+    newLabel = np.fliplr(np.asarray(labels))
+
     for i in range(minim):
       for n in range(len(nn)):
+	x = nn[n]
+	y = data[n][i]
+	z = labels[n][i]
+	
         r = forward(nn[n], data[n][i])
         delta = d_cost(r,labels[n][i])
         w,b = gradient(nn[n], delta)
