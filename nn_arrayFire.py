@@ -16,7 +16,8 @@ def _d_relu(x, eps=1e-5): return 1. if x > eps else 0.0
 def _sigmoid(x): 
 	print "HERE ARE SIGMOID"
 	return 1 / (1 + af.exp(-x))
-
+def sigtest(x):
+	return 1 / (1 + af.exp(-x))
 
 def _tanh(x): 
 	print 'HERE ARE TANH'
@@ -132,9 +133,9 @@ def forward(nn_np, data):
 	#print(type(nn['activations'][0]))
 	#print(nn['activations'][0])
 	
-	print "new loop"
-	print w.dims()
-	print nn['activations'][-1].dims()	
+	
+	
+		
         z = af.matmul(w, nn['activations'][-1])
         
 	
@@ -143,13 +144,15 @@ def forward(nn_np, data):
 	#for i in range(w.shape[1]-1):
 	#	newB = af.join(1,newB,b)
 	
-	
+
 	p = z.T + b
 	nn['zs'].append(p.T)
-	print p
-	for i in range(len(p)):
-		p[i] = af.max(p[i],1e-5)
-	
+	if len(p.shape) == 2:
+		maxVal = af.constant(1e-5,p.shape[0],p.shape[1]).T
+	else:
+		maxVal = af.constant(1e-5,p.shape[0]).T
+	q = af.maxof(p.T,maxVal)#p(i) = 1e-5
+	print q
         nn['activations'].append(q)
 	print "end loop"
     return nn['activations'][-1]
@@ -188,7 +191,7 @@ def gradient(nn, delta):
     t = nn['zs'][-1]
    
     asdf = dact(2)
-   
+    #This is d_relu.  It is a binary output
     dW = average_gradient(delta*dact(nn['zs'][-1]), nn['activations'][-2])
     nabla_b.append(np.mean(delta, axis=1))
     nabla_w.append(dW)
@@ -224,23 +227,24 @@ def expand_labels(labels):
 def master_node(nn,data,labels):
     nabla_w = []
     nabla_b = []
-    print labels
-    print "HERE ARE LABELS HERE"
+    
+    
     l = 1
-    for net in nn:
+    for i in range(len(data[0])):
+      for n in range(len(nn)):
 	print 'HERE IS NEW FORWARD PUSH'
-        r = forward(net, data)
+        r = forward(nn[n], data[n][i])
 	print r
         delta = d_cost(r,l)
 	print "HERE ARE DELTA"
 	
 	print delta
-        w,b = gradient(net, delta)
+        w,b = gradient(nn[n], delta)
         nabla_w += w
         nabla_b += b
-    nabla_w = [x / len(nn) for x in nabla_w]
-    nabla_b = [x / len(nn) for x in nabla_b]
-    for net in nn:
+      nabla_w = [x / len(nn) for x in nabla_w]
+      nabla_b = [x / len(nn) for x in nabla_b]
+      for net in nn:
         backprop(net,nabla_w,nabla_b)
 
 def minibatch_fit(nn, data, labels):
