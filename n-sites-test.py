@@ -27,12 +27,10 @@ def iter_minibatches(chunksize, data, labels):
         chunkstartmarker += chunksize
 
 
-def visitbatches(nn, batches, errlist, it=1000):
+def visitbatches(nn, batches, labelBatches, errlist, it=1000):
     for c in range(it):
-        for i in range(len(batches)):
-            batch = batches[i]
-            cc = np.mod(c,len(batch))
-            nnDif.master_node(nn, batch[cc][0], batch[cc][1])
+	    #print "len of things " + str(len(nn)) + " " + str(len(batches[0]))
+            nnDif.master_node(nn, batches, labelBatches)
             #err.append(r)
 
 def visitClassicBatches(nn,data, it=1000):
@@ -49,7 +47,7 @@ def accuracyClassic(nn, data, label, thr = 0.5):
 
 def group_list(l, group_size):
     for i in xrange(0, len(l), group_size):
-        yield l[i:i+group_size]
+        yield np.asarray(l[i:i+group_size]).T
         
 def single_run(te):
     print te
@@ -65,6 +63,26 @@ def single_run(te):
 
     for s in range(10,150,10):
 	print s
+	nets = []
+	nn_groups_data = []
+	nn_groups_label = []
+	number_of_nets = s
+	for x in range(number_of_nets):
+            nets.append(nnDif.nn_build(1,[2,6,6,1],eta=eta,nonlin=nonlin))
+        iters = 20000
+        for j in range(number_of_nets):
+            x = (total_data[int(float(j)/number_of_nets*(len(total_data))):int(float((j+1))/number_of_nets*(len(total_data)))])
+            nn_groups_data.append(x)
+    
+            nn_groups_label.append(total_label[int(float(j)/number_of_nets*(len(total_label)/number_of_nets)):int(float((j+1))/number_of_nets*(len(total_label)))])
+	print "len of things " + str(len(nets)) + " " + str(len(nn_groups_data[0]))
+	start = time.time()
+	visitbatches(nets,nn_groups_data,nn_groups_label,[],it=iters)
+	print time.time() - start
+	one = accuracy(nets[0], validation_data, validation_label, thr=0.5)
+
+	nn1Acc[te][s/10] += one
+        '''
         number_of_nets = s
         nn_groups_data = []
         nn_groups_label = list()
@@ -72,6 +90,8 @@ def single_run(te):
         groups_label = list()
         nets = list()
         batches = list()
+        print total_data
+         
         for j in range(number_of_nets):
             x = (total_data[int(float(j)/number_of_nets*(len(total_data))):int(float((j+1))/number_of_nets*(len(total_data)))])
             nn_groups_data.append(x)
@@ -79,11 +99,10 @@ def single_run(te):
             nn_groups_label.append(total_label[int(float(j)/number_of_nets*(len(total_label)/number_of_nets)):int(float((j+1))/number_of_nets*(len(total_label)))])
 
         nets = list()  #Our differential networks
-        batches = list() #a list to store every separate site set
+        batches = [] #a list to store every separate site set
+	labelBatches = []
 
-
-        for x in range(number_of_nets):
-            nets.append(nnDif.nn_build(1,[2,6,6,1],eta=eta,nonlin=nonlin))
+        
 
             #Build the n site data sets
 
@@ -93,9 +112,10 @@ def single_run(te):
 
 	#This fills batches, which is a list that contains all of our grouped data
 	#The grouped data, in this case, is the data per site
-        for nncount in range(number_of_nets):
+        for ncount in range(number_of_nets):
 
-	  batches.append([x for x in iter_minibatches(1,groups_data[nncount].T, groups_label[nncount])])
+	  batches.append(groups_data[ncount].T)
+	  labelBatches.append(groups_label[ncount])
 
 	err = []
            
@@ -103,12 +123,14 @@ def single_run(te):
 
 	#Send the lists of neural nets and batches, which does the same thing as the originial visitbatches
 	#but with lists of nets and groups
-	visitbatches(nets, batches, err, it=iters)
+	
+	visitbatches(nets, batches, labelBatches, err, it=iters)
         
 
 	one = accuracy(nets[0], validation_data, validation_label, thr=0.5)
 
 	nn1Acc[te][s/10] += one
+	'''
 nn1Acc = [[0 for i in range(15)] for j in range(10)]
 classAcc1 = [[0 for i in range(15)] for j in range(10)]
 classAcc2 = [[0 for i in range(15)] for j in range(10)]
@@ -116,7 +138,8 @@ classAcc3 = [[0 for i in range(15)] for j in range(10)]
 number_of_nets = 10
 
 runs = [0,1,2,3,4,5,6]
-pool.map(single_run,runs)
+single_run(0)
+#pool.map(single_run,runs)
 
 
 plt.xlabel("Number of batches [of size 50]")
