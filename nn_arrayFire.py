@@ -117,13 +117,10 @@ def forward(nn_np, data):
     :return: the output layer activations
     """
     nn = nn_np
-    arr = data.astype('f')
     nn['activations'] = []
-    nn['activations'].append(1)
-    nn['activations'].append(1) 
-    x = af.randu(2,3)
-    y = af.randu(3)
-    af.matmul(x,y)   
+    src = data.astype(float)
+    nn['activations'].append(af.Array(src.ctypes.data, src.shape, 'f')) 
+      
     nn['zs'] = []
     for w, s, b in map(None, nn['weights'], nn['nonlin'], nn['biases']):
 	
@@ -134,21 +131,27 @@ def forward(nn_np, data):
 
 	#print(type(nn['activations'][0]))
 	#print(nn['activations'][0])
-        z = w * nn['activations'][0]
-        b = af.transpose(b)
-	newB = b
-	print w.shape[0]
-	print w.shape[1]
-	for i in range(w.shape[1]-1):
-		newB = af.join(1,newB,b)
-	print z
-	print newB
-	p = z + newB
-	nn['zs'].append(p)
 	
-	q = af.tanh(p)
+	print "new loop"
+	print w.dims()
+	print nn['activations'][-1].dims()	
+        z = af.matmul(w, nn['activations'][-1])
+        
+	
+	
+	
+	#for i in range(w.shape[1]-1):
+	#	newB = af.join(1,newB,b)
+	
+	
+	p = z.T + b
+	nn['zs'].append(p.T)
+	print p
+	for i in range(len(p)):
+		p[i] = af.max(p[i],1e-5)
 	
         nn['activations'].append(q)
+	print "end loop"
     return nn['activations'][-1]
 
 
@@ -167,9 +170,11 @@ def test_forward():
 
 def average_gradient(deltas, activations):
     dW = 0
+    print deltas.shape
+    print "^^^  here are delta shapes"
     for i in range(deltas.shape[1]):
 	print deltas[:,i]
-	print activations[:,i]
+	print activations
         dW += af.matmulNT(deltas[:,i], activations[:,i])
     return dW#/deltas.shape[1]
 
@@ -181,10 +186,10 @@ def gradient(nn, delta):
     # output
     dact = nn['nonlin'][-1][1]
     t = nn['zs'][-1]
-    print dact
+   
     asdf = dact(2)
-    print asdf
-    dW = average_gradient(delta*af.max(nn['zs'][-1]), nn['activations'][-2])
+   
+    dW = average_gradient(delta*dact(nn['zs'][-1]), nn['activations'][-2])
     nabla_b.append(np.mean(delta, axis=1))
     nabla_w.append(dW)
 
@@ -192,8 +197,8 @@ def gradient(nn, delta):
         dact = delta * af.max(nn['zs'][i+1])
 	trans = nn['weights'][i+1].T
         delta = af.matmul(trans, dact)
-	print delta
-	print nn['activations'][i]
+
+
         dW = average_gradient(delta,nn['activations'][i])
         nabla_b.append(np.mean(delta*dact(nn['zs'][i]),axis=1))
         nabla_w.append(dW)
@@ -219,14 +224,17 @@ def expand_labels(labels):
 def master_node(nn,data,labels):
     nabla_w = []
     nabla_b = []
-    print labels.shape
+    print labels
+    print "HERE ARE LABELS HERE"
     l = 1
     for net in nn:
 	print 'HERE IS NEW FORWARD PUSH'
         r = forward(net, data)
-	print data
-	print l
+	print r
         delta = d_cost(r,l)
+	print "HERE ARE DELTA"
+	
+	print delta
         w,b = gradient(net, delta)
         nabla_w += w
         nabla_b += b
