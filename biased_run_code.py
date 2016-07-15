@@ -97,14 +97,14 @@ def single_run(s):
     for te in range(10):
       data, label = make_moons(n_samples=2000, noise=0.05, shuffle=True, random_state = int(time.time()))
         
-      data,validation_data,label,validation_label = train_test_split(data,label,train_size = .50)
+      data,validation_data,label,validation_label = train_test_split(data,label,train_size = .60)
       print te
       biases = [.02,.04,.08,.14,.20,.25,.30,.35,.40,.45,.50]
       biasCount = 0
       for b in biases:
-	print b
+
 	nData, nLabel = (bias(data,label,b))
-	print len(nData)
+
 	total_data = list(group_list(nData,1))
 	total_label = list(group_list(nLabel,1))
         number_of_nets = s
@@ -116,16 +116,20 @@ def single_run(s):
         nets = list()
         batches = list()
         for j in range(number_of_nets):
+	    dataCount = len(total_data) / s
             #x = (total_data[int(float(j)/number_of_nets*(len(total_data))):int(float((j+1))/number_of_nets*(len(total_data)))])
-            x = total_data[10 * j : 10*(j+1)]
+            x = total_data[dataCount * j : dataCount*(j+1)]
+
             nn_groups_data.append(x)
             #print len(nn_groups_data[j])
             #print "HERE BREAK"
             #print str(float((j+1))) + "  " + str(number_of_nets) + "  LEN TOTAL DATA: " + str(len(total_data)) 
             #print int(float((j+1))/number_of_nets*(len(total_data)/number_of_nets))
             #print "HERE END"
-            nn_groups_label.append(total_label[10 * j : 10*(j+1)])
+            nn_groups_label.append(total_label[dataCount * j : dataCount*(j+1)])
         #print len(nn_groups_data[1])
+        print "HERE IS DATA LENGTH  " + str(len(nn_groups_data[0]))
+        print "HERE ARE NNS NUMB    " + str(len(nn_groups_data))
         nets = list()  #Our differential networks
         batches = list() #a list to store every separate site set
         labelBatches = list()
@@ -157,12 +161,12 @@ def single_run(s):
             #t3 = [x for x in iter_minibatches(2,total_groups_data.T, total_groups_label)]
 	err = []
             #Run the batches through the algos
-	iters = 20000
+	iters = 10000
             #visitClassicBatches(nnClassic1,t, it=iters)
             #visitClassicBatches(nnClassic3,t3, it=iters)
-
+	start = time.time()
 	visitbatches(nets, nn_groups_data, nn_groups_label, err, it=iters)
-        
+        print time.time() - start
             #calculate error
             #classic = accuracyClassic(nnClassic1,validation_data,validation_label, thr=0.5)
 	one = accuracy(nets[0], validation_data, validation_label, thr=0.5)
@@ -170,6 +174,7 @@ def single_run(s):
 	nat = nets[0]
             #build plottable arrays
 	nn1Acc[siteCount][te][biasCount] += one
+	print one
             #classAcc1[te][s/2] += classic
             #classAcc3[te][s/2] += classic3
 
@@ -182,8 +187,8 @@ nn1Acc = [[[0 for k in range(11)] for i in range(10)] for j in range(3)]
 number_of_nets = 10
 sites = [2,10,100]
 siteCount = [0,1,2]
-#single_run(2)
-pool.map(single_run,sites)
+single_run(100)
+#pool.map(single_run,sites)
     
 	
         #classAcc3[te][s/2] /= len(nn_groups_data)

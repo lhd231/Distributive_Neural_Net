@@ -138,8 +138,8 @@ classAcc3 = [[0 for i in range(15)] for j in range(10)]
 number_of_nets = 10
 
 runs = [0,1,2,3,4,5,6]
-single_run(0)
-#pool.map(single_run,runs)
+#single_run(0)
+pool.map(single_run,runs)
 
 
 plt.xlabel("Number of batches [of size 50]")
