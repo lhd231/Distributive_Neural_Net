@@ -191,8 +191,12 @@ def gradient(nn, delta):
     t = nn['zs'][-1]
    
     asdf = dact(2)
+    print nn['zs'](-1) 
+    if nn['zs'](-1) < 400:
+	nn['zs'](-1) = 400
+    print nn['zs'](-1)
     #This is d_relu.  It is a binary output
-    dW = average_gradient(delta*dact(nn['zs'][-1]), nn['activations'][-2])
+    dW = average_gradient(delta*af.le(nn['zs'][-1],1e-5), nn['activations'][-2])
     nabla_b.append(np.mean(delta, axis=1))
     nabla_w.append(dW)
 
