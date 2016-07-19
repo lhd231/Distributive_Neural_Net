@@ -177,12 +177,9 @@ def master_node(nn,data,labels):
 
     for i in range(minim):
       for n in range(len(nn)):
-	x = nn[n]
-	y = data[n][i]
-	z = labels[n][i]
-	
         r = forward(nn[n], data[n][i])
         delta = d_cost(r,labels[n][i])
+        print "DELTAS ARE HERE  " + str(delta)
         w,b = gradient(nn[n], delta)
         nabla_w += w
         nabla_b += b

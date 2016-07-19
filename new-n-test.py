@@ -98,8 +98,9 @@ def iter_minibatches(chunksize, data, labels):
 
 def visitbatches(nn, batches, labels, errlist, it=1000):
     for c in range(it):
-      print 'HERE BE BATCHES   ' + str(batches[0])
-      print "HERE BE LABELS    " + str(labels[0])
+      print 'HERE BE BATCHES   ' + str(batches)
+      print "HERE BE LABELS    " + str(labels)
+      print "HERE BE NN LEN   " + str(len(nn))
       nnDif.master_node(nn,batches,labels)
             #err.append(r)
 
@@ -166,7 +167,7 @@ for te in range(10):
     nat = []
     for i in range((min(len(nn1_groups_data),len(nn2_groups_data),len(nn2_groups_data)))):#
 	#TODO:  Here, we need to rewrite the function so it 
-        print len(nn1_groups_data)-1
+        print "HERE IS OUR i    " + str(i)
         groups_data = list()
         groups_label = list()
         nets = list()
@@ -210,7 +211,15 @@ for te in range(10):
         #visitClassicBatches(nnClassic3,t3, it=iters)
         #visitClassicBatches(nnClassic4,t4, it=iters)
         #visitbatches(nets, batches, err, it=iters)
-        visitbatches(nets, groups_data, groups_label, err, it=iters)
+        differential_groups = []
+        differential_groups.append(groups_data[3*i])
+        differential_groups.append(groups_data[3*i + 1])
+        differential_groups.append(groups_data[3*i + 2])
+        differential_labels = []
+        differential_labels.append(groups_label[3*i])
+        differential_labels.append(groups_label[3*i + 1])
+        differential_labels.append(groups_label[3*i + 2])
+        visitbatches(nets, differential_groups, differential_labels, err, it=iters)
         #calculate error
         classic = accuracyClassic(nnClassic1,validation_data,validation_label, thr=0.5)
         one = accuracy(nets[0], validation_data, validation_label, thr=0.5)
