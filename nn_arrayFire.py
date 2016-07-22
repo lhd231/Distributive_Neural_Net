@@ -6,7 +6,7 @@ import arrayfire as af
 #af.set_device(1)
 
 def _relu(x, eps=1e-5): 
-	print 'HERE ARE RELU'
+	
 	return af.max(x)
 
 
@@ -14,13 +14,13 @@ def _d_relu(x, eps=1e-5): return 1. if x > eps else 0.0
 
 
 def _sigmoid(x): 
-	print "HERE ARE SIGMOID"
+	
 	return 1 / (1 + af.exp(-x))
 def sigtest(x):
 	return 1 / (1 + af.exp(-x))
 
 def _tanh(x): 
-	print 'HERE ARE TANH'
+	
 	return af.tanh(x)
 
 
@@ -35,7 +35,7 @@ def _d_sigmoid(x):
 
 #2 sites, 50 items.  To 50 sites, 2 items
 def d_cost(output, target): 
-	print "here is d cost"
+	
 	return output - target
 
 
@@ -81,7 +81,7 @@ def weight_matrix(seed, innum, outnum, type='glorot', layer=0):
     np.random.seed(seed)
     if type == 'glorot': W = af.randu(outnum,innum) #np.random.uniform(low=-np.sqrt(6.0/(2*layer+1)), high=np.sqrt(6.0/(2*layer+1)), size=(outnum, innum))
     if type == 'normal': W = af.randu(outnum,innum)# np.random.rand(outnum, innum)   
-   
+    
     return W
 
 
@@ -119,9 +119,18 @@ def forward(nn_np, data):
     """
     nn = nn_np
     nn['activations'] = []
-    src = data.astype(float)
-    nn['activations'].append(af.Array(src.ctypes.data, src.shape, 'f')) 
-      
+    
+    #prct = []
+    #prct.append(data[0][0])
+    #prct.append(data[1][0])
+    
+    #src = data.astype(float)
+    
+    nsrc = data#af.Array(prct)
+    
+    nn['activations'].append(nsrc)
+    #(af.Array(src.ctypes.data, src.shape, src.dtype.char)) 
+    
     nn['zs'] = []
     for w, s, b in map(None, nn['weights'], nn['nonlin'], nn['biases']):
 	
@@ -135,26 +144,27 @@ def forward(nn_np, data):
 	
 	
 	
-		
         z = af.matmul(w, nn['activations'][-1])
         
-	
 	
 	
 	#for i in range(w.shape[1]-1):
 	#	newB = af.join(1,newB,b)
 	
+	
+
 
 	p = z.T + b
+	
 	nn['zs'].append(p.T)
 	if len(p.shape) == 2:
 		maxVal = af.constant(1e-5,p.shape[0],p.shape[1]).T
 	else:
 		maxVal = af.constant(1e-5,p.shape[0]).T
-	q = af.maxof(p.T,maxVal)#p(i) = 1e-5
-	print q
+	q = af.maxof(p.T,1e-5)#p(i) = 1e-5
+	
         nn['activations'].append(q)
-	print "end loop"
+	
     return nn['activations'][-1]
 
 
@@ -173,11 +183,8 @@ def test_forward():
 
 def average_gradient(deltas, activations):
     dW = 0
-    print deltas.shape
-    print "^^^  here are delta shapes"
-    for i in range(deltas.shape[1]):
-	print deltas[:,i]
-	print activations
+    
+    for i in range(1):
         dW += af.matmulNT(deltas[:,i], activations[:,i])
     return dW#/deltas.shape[1]
 
@@ -191,13 +198,10 @@ def gradient(nn, delta):
     t = nn['zs'][-1]
    
     asdf = dact(2)
-    print nn['zs'](-1) 
-    if nn['zs'](-1) < 400:
-	nn['zs'](-1) = 400
-    print nn['zs'](-1)
+    
     #This is d_relu.  It is a binary output
-    dW = average_gradient(delta*af.le(nn['zs'][-1],1e-5), nn['activations'][-2])
-    nabla_b.append(np.mean(delta, axis=1))
+    dW = average_gradient(delta*af.sign(1e-5 - nn['zs'][-1]), nn['activations'][-2])
+    nabla_b.append(af.mean(delta))
     nabla_w.append(dW)
 
     for i in range(len(nn['weights']) - 2, -1, -1):
@@ -207,7 +211,7 @@ def gradient(nn, delta):
 
 
         dW = average_gradient(delta,nn['activations'][i])
-        nabla_b.append(np.mean(delta*dact(nn['zs'][i]),axis=1))
+        nabla_b.append(af.mean(delta*af.max(nn['zs'][i])))
         nabla_w.append(dW)
     return nabla_w, nabla_b
 
@@ -234,15 +238,18 @@ def master_node(nn,data,labels):
     
     
     l = 1
+    
     for i in range(len(data[0])):
       for n in range(len(nn)):
-	print 'HERE IS NEW FORWARD PUSH'
-        r = forward(nn[n], data[n][i])
-	print r
-        delta = d_cost(r,l)
-	print "HERE ARE DELTA"
 	
-	print delta
+        r = forward(nn[n], data[n][i])
+	
+	
+	tmp = []
+	tmp.append(labels[n][i][0])
+	
+        delta = d_cost(r,af.Array(tmp))
+	
         w,b = gradient(nn[n], delta)
         nabla_w += w
         nabla_b += b

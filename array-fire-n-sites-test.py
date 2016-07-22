@@ -6,6 +6,7 @@ from sklearn.datasets import make_moons
 import time
 import pylab as plt
 import nnS
+import arrayfire as af
 from multiprocessing import Pool
 from multiprocessing.dummy import Pool as ThreadPool 
 
@@ -28,9 +29,20 @@ def iter_minibatches(chunksize, data, labels):
 
 
 def visitbatches(nn, batches, labelBatches, errlist, it=1000):
+    afBatches = []
+    for group in batches:
+	gp = []
+	for item in group:
+		tmp = []
+		tmp.append(item[0])
+		tmp.append(item[1])
+	
+		gp.append(af.Array(tmp))
+	afBatches.append(gp)
+    
     for c in range(it):
 	    #print "len of things " + str(len(nn)) + " " + str(len(batches[0]))
-            nnDif.master_node(nn, batches, labelBatches)
+            nnDif.master_node(nn, afBatches, labelBatches)
             #err.append(r)
 
 def visitClassicBatches(nn,data, it=1000):
@@ -55,7 +67,7 @@ def single_run(te):
         
     data,validation_data,label,validation_label = train_test_split(data,label,train_size = .30)
         #separate the data set into buckets
-
+    
     total_data = list(group_list(data,1))
     total_label = list(group_list(label,1))
     
@@ -75,7 +87,7 @@ def single_run(te):
             nn_groups_data.append(x)
     
             nn_groups_label.append(total_label[int(float(j)/number_of_nets*(len(total_label)/number_of_nets)):int(float((j+1))/number_of_nets*(len(total_label)))])
-	print "len of things " + str(len(nets)) + " " + str(len(nn_groups_data[0]))
+
 	start = time.time()
 	visitbatches(nets,nn_groups_data,nn_groups_label,[],it=iters)
 	print time.time() - start
