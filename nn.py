@@ -2,10 +2,12 @@ import numpy as np
 import math
 from sklearn.preprocessing import LabelBinarizer
 import pylab as plt
+import sys
 #import ipdb
 
 
-def _relu(x, eps=1e-5): return max(eps, x)
+def _relu(x, eps=1e-5): 
+    return max(eps, x)
 
 
 def _d_relu(x, eps=1e-5): return 1. if x > eps else 0.0
@@ -72,6 +74,7 @@ def weight_matrix(seed, innum, outnum, type='glorot', layer=0):
     np.random.seed(seed)
     if type == 'glorot': W = np.random.uniform(low=-np.sqrt(6.0/(2*layer+1)), high=np.sqrt(6.0/(2*layer+1)), size=(outnum, innum))
     if type == 'normal': W = np.random.rand(outnum, innum)   
+
     return W
 
 
@@ -103,9 +106,13 @@ def forward(nn, data):
     :return: the output layer activations
     """
     nn['activations'] = [data]
+ 
+
     nn['zs'] = []
     for w, s, b in map(None, nn['weights'], nn['nonlin'], nn['biases']):
+   
         z = np.dot(w, nn['activations'][-1]).T + b
+        
         nn['zs'].append(z.T)
         nn['activations'].append(s[0](z.T))
     return nn['activations'][-1]
@@ -126,7 +133,7 @@ def test_forward():
 
 def average_gradient(deltas, activations):
     dW = 0
-    for i in range(deltas.shape[1]):
+    for i in range(1):
         dW += np.outer(deltas[:,i], activations[:,i].T)
     return dW#/deltas.shape[1]
 
@@ -169,17 +176,19 @@ def expand_labels(labels):
     return l
 def master_node(nn,data,labels):
     nabla_w = []
+
     nabla_b = []
     minim = len(data[0])
     maxim = len(data[0])
-    newData = np.fliplr(np.asarray(data))
-    newLabel = np.fliplr(np.asarray(labels))
+    newData = data#np.fliplr(np.asarray(data))
+    newLabel = labels#np.fliplr(np.asarray(labels))
 
     for i in range(minim):
       for n in range(len(nn)):
+
         r = forward(nn[n], data[n][i])
+       
         delta = d_cost(r,labels[n][i])
-        print "DELTAS ARE HERE  " + str(delta)
         w,b = gradient(nn[n], delta)
         nabla_w += w
         nabla_b += b

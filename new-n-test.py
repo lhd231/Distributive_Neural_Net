@@ -10,10 +10,13 @@ import nnS
 import math
 import random
 from scipy.stats import multivariate_normal as norm
+from multiprocessing import Pool
+from multiprocessing.dummy import Pool as ThreadPool 
 
 minibatch = 2
 nonlin = 'relu'
 eta = 0.0025
+pool = ThreadPool(10)
 
 def gauss(x,mu,sigma):
   
@@ -24,7 +27,6 @@ def gauss(x,mu,sigma):
 def split(data, label):
   #plt.scatter(data[:,0],data[:,1], c=label)
   
-  print np.var(data)
   pointMid1 = (0,1)
   pointMid2 = (1,-.5)
   pointEdge1 = (-.9,.4)
@@ -43,6 +45,10 @@ def split(data, label):
   green2Label = list()
   red1Label = list()
   red2Label = list()
+  dif1 = list()
+  dif2 = list()
+  dif1Label = list()
+  dif2Label = list()
   max = 0
   i = 0
   for x,y in zip(data,label):
@@ -56,32 +62,47 @@ def split(data, label):
     if y==0 and a < g1:
       green1.append(x)
       green1Label.append(y)
+      dif1.append(x)
+      dif1Label.append(y)
     elif y==1 and a < g2:
       green2.append(x)
       green2Label.append(y)
+      dif2.append(x)
+      dif2Label.append(y)
     elif y==0 and a< b1:
       brown1.append(x)
       brown1Label.append(y)
+      dif1.append(x)
+      dif1Label.append(y)
     elif y==1 and a < b2:
       brown2.append(x)
       brown2Label.append(y)
-
+      dif2.append(x)
+      dif2Label.append(y)
     elif y==0 and a < r1:
       red1.append(x)
       red1Label.append(y)
+      dif1.append(x)
+      dif1Label.append(y)
     elif y==1 and a < r2:
       red2.append(x)
       red2Label.append(y)
+      dif2.append(x)
+      dif2Label.append(y)
     i += 1
   return_list_data = list()
   return_list_label = list()
+  return_dif_data = list()
+  return_dif_label = list()
   return_list_data.append(brown1 + brown2) 
   return_list_data.append(green1 + green2) 
   return_list_data.append(red1 + red2)
   return_list_label.append(brown1Label + brown2Label) 
   return_list_label.append(green1Label + green2Label)
   return_list_label.append(red1Label + red2Label)
-  return return_list_data, return_list_label
+  return_dif_data.append(dif1 + dif2)
+  return_dif_label.append(dif1Label + dif2Label)
+  return return_list_data, return_list_label, return_dif_data, return_dif_label
 
 
 #adagrad and adadelta  esp adadelta
@@ -98,16 +119,14 @@ def iter_minibatches(chunksize, data, labels):
 
 def visitbatches(nn, batches, labels, errlist, it=1000):
     for c in range(it):
-      print 'HERE BE BATCHES   ' + str(batches)
-      print "HERE BE LABELS    " + str(labels)
-      print "HERE BE NN LEN   " + str(len(nn))
+
       nnDif.master_node(nn,batches,labels)
             #err.append(r)
 
-def visitClassicBatches(nn,data, it=1000):
+def visitClassicBatches(nn,data,labels, it=1000):
     for c in range(it):
-        cc = np.mod(c,len(data));
-        nnS.minibatch_fit(nn, data[cc][0], data[cc][1])
+        for cc in range(len(data)):
+	  nnS.minibatch_fit(nn, data[cc], labels[cc])
 
 def accuracy(nn, data, label, thr = 0.5):
     predict  = [ np.int8(nnDif.forward(nn,data[c,:]) > thr) == label[c] for c in range(data.shape[0])]
@@ -118,43 +137,43 @@ def accuracyClassic(nn, data, label, thr = 0.5):
 
 def group_list(l, group_size):
     for i in xrange(0, len(l), group_size):
-        yield np.asarray(l[i:i+group_size])
+        yield np.asarray(l[i:i+group_size]).T
 nn1Acc = [[0 for i in range(17)] for j in range(10)]
 classAcc1 = [[0 for i in range(17)] for j in range(10)]
 classAcc2 = [[0 for i in range(17)] for j in range(10)]
 classAcc3 = [[0 for i in range(17)] for j in range(10)]
 classAcc4 = [[0 for i in range(17)] for j in range(10)]
-print len(nn1Acc)
-print "len"
-print len(nn1Acc[0])   
+ 
 number_of_nets = 3
-for te in range(10):
+def sing_run(te):
     print te
     data, label = make_moons(n_samples=1500, shuffle=True, noise=0.2,random_state = int(time.time()))
-    print data[0]
+    
     data,validation_data,label,validation_label = train_test_split(data,label,train_size = .32)
         #separate the data set into buckets
-    total_data, total_label = split(data,label)
+ 
+    total_data, total_label, total_dif_data, total_dif_label = split(data,label)
 
-     
+    '''for i in range(3):
+      for item in total_data[i]:
+	for j in range(len(item)):
+	  total_data[i][j] = list(total_data[i][j])'''
     #total_data = list(group_list(data,10))
     #total_label = list(group_list(label,10))
     #The two separate site sets
     #nn1_groups_data = total_data[:len(total_data)/2+1]
-    print len(total_data[0])
-    print len(total_data[1])
-    nn1_groups_data = list(group_list(total_data[0],10))
-    nn1_groups_label = list(group_list(total_label[0],10))
-    nn2_groups_data = list(group_list(total_data[1],10))
-    nn2_groups_label = list(group_list(total_label[1],10))
-    nn3_groups_data = list(group_list(total_data[2],10))
-    nn3_groups_label = list(group_list(total_label[2],10))
-    nn1_groups_data.pop()
-    nn1_groups_label.pop()
-    nn2_groups_data.pop()
-    nn2_groups_label.pop()
-    nn3_groups_data.pop()
-    nn3_groups_label.pop()
+    nn1_groups_data = list(group_list(total_data[0],1))
+    nn1_groups_label = list(group_list(total_label[0],1))
+    nn2_groups_data = list(group_list(total_data[1],1))
+    nn2_groups_label = list(group_list(total_label[1],1))
+    nn3_groups_data = list(group_list(total_data[2],1))
+    nn3_groups_label = list(group_list(total_label[2],1))
+    dif_groups_data = nn1_groups_data +nn2_groups_data +nn3_groups_data
+    dif_groups_label = nn1_groups_label + nn2_groups_label + nn3_groups_label
+   
+
+ 
+    minim = min(min(len(nn1_groups_data),len(nn2_groups_data)),len(nn3_groups_data))
     #print "length of site one group data " + str(len(nn1_groups_data))
     #nn2_groups_data = total_data[len(total_data)/2:]
     #nn1_groups_label = total_label[:len(total_data)/2+1]
@@ -165,17 +184,21 @@ for te in range(10):
     #Lists for our error to be plotted later
         
     nat = []
-    for i in range((min(len(nn1_groups_data),len(nn2_groups_data),len(nn2_groups_data)))):#
+
+    dif_group_data = nn1_groups_data + nn2_groups_data + nn3_groups_data
+  
+    dif_group_label = nn1_groups_label + nn2_groups_label + nn3_groups_label
+    differential_groups = dif_group_data[0]
+    differential_labels = dif_group_label[0]
+    for i in range(10,minim - minim%10,10):#
+	print "HERE ARE DATA SIZES " + str(i)
 	#TODO:  Here, we need to rewrite the function so it 
-        print "HERE IS OUR i    " + str(i)
         groups_data = list()
         groups_label = list()
         nets = list()
         batches = list()
         nnClassic1 = nnS.nn_build(1,[2,6,6,1],eta=eta,nonlin=nonlin)
         nnClassic2 = nnS.nn_build(1,[2,6,6,1],eta=eta,nonlin=nonlin)
-        print "HERE BE GROUP1 DATA   " 
-        print nn1_groups_data
         for x in range(number_of_nets):
             nets.append(nnDif.nn_build(1,[2,6,6,1],eta=eta,nonlin=nonlin))
         
@@ -183,10 +206,6 @@ for te in range(10):
         groups_data.append(np.asarray([item for sublist in nn1_groups_data[:i+1] for item in sublist]))
         groups_data.append(np.asarray([item for sublist in nn2_groups_data[:i+1] for item in sublist]))
         groups_data.append(np.asarray([item for sublist in nn3_groups_data[:i+1] for item in sublist]))
-        print "groups data length " + str(len(nn1_groups_label))
-        print "groups data length " + str(len(nn1_groups_data[i]))
-        print "groups data length " + str(len(nn2_groups_label[i]))
-        print "groups data length " + str(len(nn2_groups_data))
 
         groups_label.append(np.asarray([item for sublist in nn1_groups_label[:i+1] for item in sublist]))
         groups_label.append(np.asarray([item for sublist in nn2_groups_label[:i+1] for item in sublist]))
@@ -197,29 +216,26 @@ for te in range(10):
         nnClassic3 = nnS.nn_build(1,[2,6,6,1],eta=eta,nonlin=nonlin)
         nnClassic4 = nnS.nn_build(1,[2,6,6,1],eta=eta,nonlin=nonlin)
         
-        for s in range(number_of_nets):
-            batches.append([x for x in iter_minibatches(2,groups_data[s].T, groups_label[s])])
-        t = [x for x in iter_minibatches(2,groups_data[0].T, groups_label[0])]
-        t2 = [x for x in iter_minibatches(1,groups_data[1].T, groups_label[1])]    
-        t3 = [x for x in iter_minibatches(1,groups_data[2].T, groups_label[2])]
-        t4 = [x for x in iter_minibatches(1,total_groups_data.T, total_groups_label)]
+        #for s in range(number_of_nets):
+            #batches.append([x for x in iter_minibatches(2,groups_data[s].T, groups_label[s])])
+        #t = [x for x in iter_minibatches(2,groups_data[0].T, groups_label[0])]
+        #t2 = [x for x in iter_minibatches(1,groups_data[1].T, groups_label[1])]    
+        #t3 = [x for x in iter_minibatches(1,groups_data[2].T, groups_label[2])]
+        #t4 = [x for x in iter_minibatches(1,total_groups_data.T, total_groups_label)]
         err = []
         #Run the batches through the algos
-        iters = 20000
-        #visitClassicBatches(nnClassic1,t, it=iters)
-        #visitClassicBatches(nnClassic2,t2, it=iters)
-        #visitClassicBatches(nnClassic3,t3, it=iters)
+        iters = 15000
+        visitClassicBatches(nnClassic1,nn1_groups_data[:i],nn1_groups_label[:i], it=iters)
+        visitClassicBatches(nnClassic1,nn2_groups_data[:i],nn2_groups_label[:i], it=iters)
+        visitClassicBatches(nnClassic1,nn3_groups_data[:i],nn3_groups_label[:i], it=iters)
         #visitClassicBatches(nnClassic4,t4, it=iters)
         #visitbatches(nets, batches, err, it=iters)
-        differential_groups = []
-        differential_groups.append(groups_data[3*i])
-        differential_groups.append(groups_data[3*i + 1])
-        differential_groups.append(groups_data[3*i + 2])
-        differential_labels = []
-        differential_labels.append(groups_label[3*i])
-        differential_labels.append(groups_label[3*i + 1])
-        differential_labels.append(groups_label[3*i + 2])
-        visitbatches(nets, differential_groups, differential_labels, err, it=iters)
+	print "finish classics"
+        differential_groups = differential_groups + dif_group_data[3*i] +dif_group_data[3*i + 1] + dif_group_data[3*i + 2]
+
+        
+        differential_labels = differential_labels + dif_group_label[3*i] + dif_group_label[3*i + 1] + dif_group_label[3*i + 2]
+        visitbatches(nets, [nn1_groups_data[:i],nn2_groups_data[:i],nn3_groups_data[:i]], [nn1_groups_label[:i],nn2_groups_label[:i],nn3_groups_label[:i]], err, it=iters)
         #calculate error
         classic = accuracyClassic(nnClassic1,validation_data,validation_label, thr=0.5)
         one = accuracy(nets[0], validation_data, validation_label, thr=0.5)
@@ -228,14 +244,18 @@ for te in range(10):
         classic4 = accuracyClassic(nnClassic4,validation_data,validation_label, thr=0.5)
         nat = nets[0]
         #build plottable arrays
-        nn1Acc[te][i] = one
-        classAcc1[te][i] = classic
-        classAcc2[te][i] = classic2
-        classAcc3[te][i] = classic3
-        classAcc4[te][i] = classic4
+        nn1Acc[te][i/10] = one
+        print "ACCURACY"
+        print one
+        classAcc1[te][i/10] = classic
+        classAcc2[te][i/10] = classic2
+        classAcc3[te][i/10] = classic3
+        classAcc4[te][i/10] = classic4
 
         #print "us " + str(one) + " c1 " + str(classic) + " c2 " + str(classic2) + " cc " + str(classic3)
-
+nat = range(10)
+#sing_run(3)
+pool.map(sing_run,nat)
 #nn1Acc[:] = [x / 10 for x in nn1Acc]
 #classAcc1[:] = [x / 10 for x in classAcc1]
 #classAcc2[:] = [x / 10 for x in classAcc2]
