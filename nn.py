@@ -196,7 +196,12 @@ def master_node(nn,data,labels):
       nabla_b = [x / len(nn) for x in nabla_b]
       for net in nn:
         backprop(net,nabla_w,nabla_b)
-
+#notes:  
+#Iterate
+#-call forward
+#-call d_cost
+#-call gradient
+#call backprop
 def minibatch_fit(nn, data, labels):
     r = forward(nn, data)
     dact = nn['nonlin'][-1][1]

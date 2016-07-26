@@ -224,10 +224,10 @@ def sing_run(te):
         #t4 = [x for x in iter_minibatches(1,total_groups_data.T, total_groups_label)]
         err = []
         #Run the batches through the algos
-        iters = 15000
+        iters = 20
         visitClassicBatches(nnClassic1,nn1_groups_data[:i],nn1_groups_label[:i], it=iters)
-        visitClassicBatches(nnClassic1,nn2_groups_data[:i],nn2_groups_label[:i], it=iters)
-        visitClassicBatches(nnClassic1,nn3_groups_data[:i],nn3_groups_label[:i], it=iters)
+        #visitClassicBatches(nnClassic1,nn2_groups_data[:i],nn2_groups_label[:i], it=iters)
+        #visitClassicBatches(nnClassic1,nn3_groups_data[:i],nn3_groups_label[:i], it=iters)
         #visitClassicBatches(nnClassic4,t4, it=iters)
         #visitbatches(nets, batches, err, it=iters)
 	print "finish classics"
@@ -247,6 +247,7 @@ def sing_run(te):
         nn1Acc[te][i/10] = one
         print "ACCURACY"
         print one
+        print classic
         classAcc1[te][i/10] = classic
         classAcc2[te][i/10] = classic2
         classAcc3[te][i/10] = classic3
