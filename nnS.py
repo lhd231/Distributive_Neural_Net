@@ -26,7 +26,8 @@ def _d_sigmoid(x):
     return s * (1 - s)
 
 
-def d_cost(output, target): return output - target
+def d_cost(output, target): 
+  return output - target
 
 
 sigmoid = np.vectorize(_sigmoid)
@@ -102,10 +103,12 @@ def forward(nn, data):
     :param data: a numpy n by m matrix where m in the number of input units in nn
     :return: the output layer activations
     """
-    nn['activations'] = [data]
+    nn['activations'] = [data[0]]
+
     nn['zs'] = []
     for w, s, b in map(None, nn['weights'], nn['nonlin'], nn['biases']):
         z = np.dot(w, nn['activations'][-1]).T + b
+      
         nn['zs'].append(z.T)
         nn['activations'].append(s[0](z.T))
     return nn['activations'][-1]
@@ -138,7 +141,9 @@ def backprop(nn, delta):
 
     # output
     dact = nn['nonlin'][-1][1]
+
     dW = average_gradient(delta*dact(nn['zs'][-1]), nn['activations'][-2])
+    print delta
     nabla_b.append(np.mean(delta, axis=1))
     nabla_w.append(dW)
 
@@ -168,8 +173,10 @@ def expand_labels(labels):
 
 def minibatch_fit(nn, data, labels):
     r = forward(nn, data)
+    
     dact = nn['nonlin'][-1][1]
     delta = d_cost(r, labels) #* dact(nn['zs'][-1])
+    
     backprop(nn, delta)
     # ipdb.set_trace()
     return np.sqrt(np.sum(np.square(r - labels))) / 2

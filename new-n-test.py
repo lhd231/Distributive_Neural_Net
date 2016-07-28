@@ -31,8 +31,8 @@ def split(data, label):
   pointMid2 = (1,-.5)
   pointEdge1 = (-.9,.4)
   pointEdge2 = (0,.4)
-  pointEdge3 = (1,.5)
-  pointEdge4 = (2,.4)
+  pointEdge3 = (.8,.4)
+  pointEdge4 = (1.8,0)
   brown1 = list()
   brown2 = list()
   green1 = list()
@@ -94,14 +94,18 @@ def split(data, label):
   return_list_label = list()
   return_dif_data = list()
   return_dif_label = list()
-  return_list_data.append(brown1 + brown2) 
-  return_list_data.append(green1 + green2) 
-  return_list_data.append(red1 + red2)
-  return_list_label.append(brown1Label + brown2Label) 
-  return_list_label.append(green1Label + green2Label)
-  return_list_label.append(red1Label + red2Label)
+  minim = min([len(brown1),len(brown2),len(red1),len(red2),len(green1),len(green2)])
+  return_list_data.append(brown1[:minim] + brown2[:minim]) 
+  return_list_data.append(green1[:minim] + green2[:minim]) 
+  return_list_data.append(red1[:minim] + red2[:minim])
+  return_list_label.append(brown1Label[:minim] + brown2Label[:minim]) 
+  return_list_label.append(green1Label[:minim] + green2Label[:minim])
+  return_list_label.append(red1Label[:minim] + red2Label[:minim])
   return_dif_data.append(dif1 + dif2)
   return_dif_label.append(dif1Label + dif2Label)
+  rads = brown1[:minim] + brown2[:minim]
+  list1, list2 = zip(*rads)
+  plt.scatter(list1,list2)
   return return_list_data, return_list_label, return_dif_data, return_dif_label
 
 
@@ -109,15 +113,20 @@ def split(data, label):
 def iter_minibatches(chunksize, data, labels):
     # Provide chunks one by one
     chunkstartmarker = 0
-    numsamples = data.shape[1]
+    numsamples = len(data)
+    X_chunk = []
+    Y_chunk = []
     while chunkstartmarker < numsamples:
         chunkrows = range(chunkstartmarker,chunkstartmarker+chunksize)
-        X_chunk, y_chunk = data[:,chunkrows], labels[chunkrows]
-        yield X_chunk, y_chunk
+        X_chunk.append(np.asarray(data[chunkstartmarker:chunkstartmarker+chunksize]).T)
+        Y_chunk.append(np.asarray(labels[chunkstartmarker:chunkstartmarker+chunksize]).T)
+  
         chunkstartmarker += chunksize
+    return X_chunk, Y_chunk
 
 
 def visitbatches(nn, batches, labels, errlist, it=1000):
+
     for c in range(it):
 
       nnDif.master_node(nn,batches,labels)
@@ -129,6 +138,8 @@ def visitClassicBatches(nn,data,labels, it=1000):
 	  nnS.minibatch_fit(nn, data[cc], labels[cc])
 
 def accuracy(nn, data, label, thr = 0.5):
+    print data[0]
+    print nnDif.forward(nn,data[0])
     predict  = [ np.int8(nnDif.forward(nn,data[c,:]) > thr) == label[c] for c in range(data.shape[0])]
     return 100 * np.double(len(np.where(np.asarray(predict)==False)[0]))/np.double(len(predict))
 def accuracyClassic(nn, data, label, thr = 0.5):
@@ -138,22 +149,33 @@ def accuracyClassic(nn, data, label, thr = 0.5):
 def group_list(l, group_size):
     for i in xrange(0, len(l), group_size):
         yield np.asarray(l[i:i+group_size]).T
-nn1Acc = [[0 for i in range(17)] for j in range(10)]
-classAcc1 = [[0 for i in range(17)] for j in range(10)]
-classAcc2 = [[0 for i in range(17)] for j in range(10)]
-classAcc3 = [[0 for i in range(17)] for j in range(10)]
-classAcc4 = [[0 for i in range(17)] for j in range(10)]
+nn1Acc = [[0 for i in range(35)] for j in range(10)]
+classAcc1 = [[0 for i in range(35)] for j in range(10)]
+classAcc2 = [[0 for i in range(35)] for j in range(10)]
+classAcc3 = [[0 for i in range(35)] for j in range(10)]
+classAcc4 = [[0 for i in range(35)] for j in range(10)]
  
 number_of_nets = 3
 def sing_run(te):
     print te
-    data, label = make_moons(n_samples=1500, shuffle=True, noise=0.2,random_state = int(time.time()))
+    data, label = make_moons(n_samples=5000, shuffle=True, noise=0.1,random_state = int(time.time()))
     
     data,validation_data,label,validation_label = train_test_split(data,label,train_size = .32)
         #separate the data set into buckets
  
     total_data, total_label, total_dif_data, total_dif_label = split(data,label)
-
+    random.seed(4)
+    random.shuffle(total_data[0])
+    random.seed(4)
+    random.shuffle(total_data[1])
+    random.seed(4)
+    random.shuffle(total_data[2])
+    random.seed(4)
+    random.shuffle(total_label[0])
+    random.seed(4)
+    random.shuffle(total_label[1])
+    random.seed(4)
+    random.shuffle(total_label[2])
     '''for i in range(3):
       for item in total_data[i]:
 	for j in range(len(item)):
@@ -192,6 +214,7 @@ def sing_run(te):
     differential_labels = dif_group_label[0]
     for i in range(10,minim - minim%10,10):#
 	print "HERE ARE DATA SIZES " + str(i)
+	print minim
 	#TODO:  Here, we need to rewrite the function so it 
         groups_data = list()
         groups_label = list()
@@ -203,15 +226,15 @@ def sing_run(te):
             nets.append(nnDif.nn_build(1,[2,6,6,1],eta=eta,nonlin=nonlin))
         
         #Build the two site data sets
-        groups_data.append(np.asarray([item for sublist in nn1_groups_data[:i+1] for item in sublist]))
-        groups_data.append(np.asarray([item for sublist in nn2_groups_data[:i+1] for item in sublist]))
-        groups_data.append(np.asarray([item for sublist in nn3_groups_data[:i+1] for item in sublist]))
+        #groups_data.append(np.asarray([item for sublist in nn1_groups_data[:i+1] for item in sublist]))
+        #groups_data.append(np.asarray([item for sublist in nn2_groups_data[:i+1] for item in sublist]))
+        #groups_data.append(np.asarray([item for sublist in nn3_groups_data[:i+1] for item in sublist]))
 
-        groups_label.append(np.asarray([item for sublist in nn1_groups_label[:i+1] for item in sublist]))
-        groups_label.append(np.asarray([item for sublist in nn2_groups_label[:i+1] for item in sublist]))
-        groups_label.append(np.asarray([item for sublist in nn3_groups_label[:i+1] for item in sublist]))
-        total_groups_data = np.asarray([item for sublist in groups_data for item in sublist])
-        total_groups_label =  np.asarray([item for sublist in groups_label for item in sublist])
+        #groups_label.append(np.asarray([item for sublist in nn1_groups_label[:i+1] for item in sublist]))
+        #groups_label.append(np.asarray([item for sublist in nn2_groups_label[:i+1] for item in sublist]))
+        #groups_label.append(np.asarray([item for sublist in nn3_groups_label[:i+1] for item in sublist]))
+        #total_groups_data = np.asarray([item for sublist in groups_data for item in sublist])
+        #total_groups_label =  np.asarray([item for sublist in groups_label for item in sublist])
         #Our classic combined nn    
         nnClassic3 = nnS.nn_build(1,[2,6,6,1],eta=eta,nonlin=nonlin)
         nnClassic4 = nnS.nn_build(1,[2,6,6,1],eta=eta,nonlin=nonlin)
@@ -224,29 +247,42 @@ def sing_run(te):
         #t4 = [x for x in iter_minibatches(1,total_groups_data.T, total_groups_label)]
         err = []
         #Run the batches through the algos
-        iters = 20
-        visitClassicBatches(nnClassic1,nn1_groups_data[:i],nn1_groups_label[:i], it=iters)
+        iters = 10
         #visitClassicBatches(nnClassic1,nn2_groups_data[:i],nn2_groups_label[:i], it=iters)
         #visitClassicBatches(nnClassic1,nn3_groups_data[:i],nn3_groups_label[:i], it=iters)
         #visitClassicBatches(nnClassic4,t4, it=iters)
         #visitbatches(nets, batches, err, it=iters)
-	print "finish classics"
-        differential_groups = differential_groups + dif_group_data[3*i] +dif_group_data[3*i + 1] + dif_group_data[3*i + 2]
+	#print "finish classics"
+        #differential_groups = differential_groups + dif_group_data[3*i] +dif_group_data[3*i + 1] + dif_group_data[3*i + 2]
+	batchesData1,batchesLabel1 = [x for x in iter_minibatches(2,nn1_groups_data,nn1_groups_label)]
+       	batchesData2,batchesLabel2 = [x for x in iter_minibatches(2,nn2_groups_data,nn2_groups_label)]
+	batchesData3,batchesLabel3 = [x for x in iter_minibatches(2,nn3_groups_data,nn3_groups_label)]
 
-        
-        differential_labels = differential_labels + dif_group_label[3*i] + dif_group_label[3*i + 1] + dif_group_label[3*i + 2]
-        visitbatches(nets, [nn1_groups_data[:i],nn2_groups_data[:i],nn3_groups_data[:i]], [nn1_groups_label[:i],nn2_groups_label[:i],nn3_groups_label[:i]], err, it=iters)
+	visitClassicBatches(nnClassic1,batchesData1[:i],batchesLabel1[:i], it=iters)
+	
+        #differential_labels = differential_labels + dif_group_label[3*i] + dif_group_label[3*i + 1] + dif_group_label[3*i + 2]
+        #visitbatches(nets, [nn1_groups_data[:i],nn2_groups_data[:i],nn3_groups_data[:i]], [nn1_groups_label[:i],nn2_groups_label[:i],nn3_groups_label[:i]], err, it=iters)
+        visitbatches(nets, [batchesData1[:i],batchesData2[:i],batchesData3[:i]], [batchesLabel1[:i],batchesLabel2[:i],batchesLabel3[:i]], err, it=iters)
+        #visitbatches([nets[1]], [batchesData1[:i]], [batchesLabel1[:i]], err, it=iters)
+
         #calculate error
+        nnClassic5 = nnS.nn_build(1,[2,6,6,1],eta=eta,nonlin=nonlin)
+        testAcc = accuracyClassic(nnClassic5,validation_data,validation_label,thr=.05)
+        testAcc2 = accuracy(nnClassic5,validation_data,validation_label,thr=.05)
+        print "TEST ACC:  "+str(testAcc)+" " +str(testAcc2)
         classic = accuracyClassic(nnClassic1,validation_data,validation_label, thr=0.5)
         one = accuracy(nets[0], validation_data, validation_label, thr=0.5)
+        two = accuracy(nets[1], validation_data,validation_label, thr=0.5)
         classic2 = accuracyClassic(nnClassic2,validation_data,validation_label, thr=0.5)
         classic3 = accuracyClassic(nnClassic3,validation_data,validation_label, thr=0.5)
         classic4 = accuracyClassic(nnClassic4,validation_data,validation_label, thr=0.5)
         nat = nets[0]
         #build plottable arrays
         nn1Acc[te][i/10] = one
+        print i/10
         print "ACCURACY"
         print one
+        print two
         print classic
         classAcc1[te][i/10] = classic
         classAcc2[te][i/10] = classic2
@@ -255,8 +291,8 @@ def sing_run(te):
 
         #print "us " + str(one) + " c1 " + str(classic) + " c2 " + str(classic2) + " cc " + str(classic3)
 nat = range(10)
-#sing_run(3)
-pool.map(sing_run,nat)
+sing_run(3)
+#pool.map(sing_run,nat)
 #nn1Acc[:] = [x / 10 for x in nn1Acc]
 #classAcc1[:] = [x / 10 for x in classAcc1]
 #classAcc2[:] = [x / 10 for x in classAcc2]

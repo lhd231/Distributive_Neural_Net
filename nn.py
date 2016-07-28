@@ -29,7 +29,8 @@ def _d_sigmoid(x):
     return s * (1 - s)
 
 #2 sites, 50 items.  To 50 sites, 2 items
-def d_cost(output, target): return output - target
+def d_cost(output, target): 
+  return output - target
 
 
 sigmoid = np.vectorize(_sigmoid)
@@ -105,14 +106,13 @@ def forward(nn, data):
     :param data: a numpy n by m matrix where m in the number of input units in nn
     :return: the output layer activations
     """
-    nn['activations'] = [data]
- 
+    nn['activations'] = [data[0]]
 
     nn['zs'] = []
     for w, s, b in map(None, nn['weights'], nn['nonlin'], nn['biases']):
    
         z = np.dot(w, nn['activations'][-1]).T + b
-        
+       
         nn['zs'].append(z.T)
         nn['activations'].append(s[0](z.T))
     return nn['activations'][-1]
@@ -144,15 +144,16 @@ def gradient(nn, delta):
 
     # output
     dact = nn['nonlin'][-1][1]
+
     dW = average_gradient(delta*dact(nn['zs'][-1]), nn['activations'][-2])
     nabla_b.append(np.mean(delta, axis=1))
     nabla_w.append(dW)
-
     for i in range(len(nn['weights']) - 2, -1, -1):
         dact = nn['nonlin'][i][1]
         delta = np.dot(nn['weights'][i+1].T, delta * dact(nn['zs'][i+1]))
 
         dW = average_gradient(delta,nn['activations'][i])
+        
         nabla_b.append(np.mean(delta*dact(nn['zs'][i]),axis=1))
         nabla_w.append(dW)
     return nabla_w, nabla_b
@@ -175,19 +176,19 @@ def expand_labels(labels):
     l = lb.fit_transform(labels).T
     return l
 def master_node(nn,data,labels):
-    nabla_w = []
 
-    nabla_b = []
+    #minim = min(min(len(data[0]),len(data[1])),len(data[2]))
     minim = len(data[0])
-    maxim = len(data[0])
     newData = data#np.fliplr(np.asarray(data))
     newLabel = labels#np.fliplr(np.asarray(labels))
-
     for i in range(minim):
+      nabla_w = []
+
+      nabla_b = []
       for n in range(len(nn)):
 
         r = forward(nn[n], data[n][i])
-       
+      
         delta = d_cost(r,labels[n][i])
         w,b = gradient(nn[n], delta)
         nabla_w += w
