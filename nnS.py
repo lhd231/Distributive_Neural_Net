@@ -7,7 +7,8 @@ import pylab as plt
 def _relu(x, eps=1e-5): return max(eps, x)
 
 
-def _d_relu(x, eps=1e-5): return 1. if x > eps else 0.0
+def _d_relu(x, eps=1e-5): 
+  return 1. if x > eps else 0.0
 
 
 def _sigmoid(x): return 1 / (1 + math.exp(-x))
@@ -141,9 +142,8 @@ def backprop(nn, delta):
 
     # output
     dact = nn['nonlin'][-1][1]
-
     dW = average_gradient(delta*dact(nn['zs'][-1]), nn['activations'][-2])
-    print delta
+   
     nabla_b.append(np.mean(delta, axis=1))
     nabla_w.append(dW)
 
@@ -155,11 +155,13 @@ def backprop(nn, delta):
         nabla_b.append(np.mean(delta*dact(nn['zs'][i]),axis=1))
         nabla_w.append(dW)
 
-
+    asdf = ""
     for i in range(len(nn['weights'])):
         nn['weights'][i] -= eta * nabla_w[-i - 1]
         nn['biases'][i] -= eta * nabla_b[-i - 1]
-
+    
+	asdf = asdf + str(nabla_w[-i-1])
+    
 
 def expand_labels(labels):
     n = len(np.unique(labels))
@@ -174,9 +176,8 @@ def expand_labels(labels):
 def minibatch_fit(nn, data, labels):
     r = forward(nn, data)
     
-    dact = nn['nonlin'][-1][1]
     delta = d_cost(r, labels) #* dact(nn['zs'][-1])
-    
+
     backprop(nn, delta)
     # ipdb.set_trace()
     return np.sqrt(np.sum(np.square(r - labels))) / 2

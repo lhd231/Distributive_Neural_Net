@@ -15,7 +15,7 @@ from multiprocessing.dummy import Pool as ThreadPool
 
 minibatch = 2
 nonlin = 'relu'
-eta = 0.0025
+eta = 0.1
 pool = ThreadPool(10)
 
 def gauss(x,mu,sigma):
@@ -126,25 +126,26 @@ def iter_minibatches(chunksize, data, labels):
 
 
 def visitbatches(nn, batches, labels, errlist, it=1000):
-
+    print "EEEENNNNNDDDD"
     for c in range(it):
 
       nnDif.master_node(nn,batches,labels)
             #err.append(r)
 
 def visitClassicBatches(nn,data,labels, it=1000):
+    print "EEEENNNNDDD   classic"
     for c in range(it):
         for cc in range(len(data)):
 	  nnS.minibatch_fit(nn, data[cc], labels[cc])
 
 def accuracy(nn, data, label, thr = 0.5):
-    print data[0]
-    print nnDif.forward(nn,data[0])
-    predict  = [ np.int8(nnDif.forward(nn,data[c,:]) > thr) == label[c] for c in range(data.shape[0])]
-    return 100 * np.double(len(np.where(np.asarray(predict)==False)[0]))/np.double(len(predict))
+
+    predict  = [ np.int8(nnS.forward(nn,data[c,:]) > thr) == label[c] for c in range(data.shape[0])]
+  
+    return 50 * np.double(len(np.where(np.asarray(predict)==False)[0]))/np.double(len(predict))
 def accuracyClassic(nn, data, label, thr = 0.5):
     predict  = [ np.int8(nnS.forward(nn,data[c,:]) > thr) == label[c] for c in range(data.shape[0])]
-    return 100 * np.double(len(np.where(np.asarray(predict)==False)[0]))/np.double(len(predict))
+    return 50 * np.double(len(np.where(np.asarray(predict)==False)[0]))/np.double(len(predict))
 
 def group_list(l, group_size):
     for i in xrange(0, len(l), group_size):
@@ -158,9 +159,9 @@ classAcc4 = [[0 for i in range(35)] for j in range(10)]
 number_of_nets = 3
 def sing_run(te):
     print te
-    data, label = make_moons(n_samples=5000, shuffle=True, noise=0.1,random_state = int(time.time()))
+    data, label = make_moons(n_samples=6000, shuffle=True, noise=0.1,random_state = int(time.time()))
     
-    data,validation_data,label,validation_label = train_test_split(data,label,train_size = .32)
+    data,validation_data,label,validation_label = train_test_split(data,label,train_size = .40)
         #separate the data set into buckets
  
     total_data, total_label, total_dif_data, total_dif_label = split(data,label)
@@ -247,9 +248,9 @@ def sing_run(te):
         #t4 = [x for x in iter_minibatches(1,total_groups_data.T, total_groups_label)]
         err = []
         #Run the batches through the algos
-        iters = 10
-        #visitClassicBatches(nnClassic1,nn2_groups_data[:i],nn2_groups_label[:i], it=iters)
-        #visitClassicBatches(nnClassic1,nn3_groups_data[:i],nn3_groups_label[:i], it=iters)
+        iters = 100
+        #visitClassicBatches(nnClassic2,nn2_groups_data[:i],nn2_groups_label[:i], it=iters)
+        #visitClassicBatches(nnClassic3,nn3_groups_data[:i],nn3_groups_label[:i], it=iters)
         #visitClassicBatches(nnClassic4,t4, it=iters)
         #visitbatches(nets, batches, err, it=iters)
 	#print "finish classics"
@@ -257,37 +258,45 @@ def sing_run(te):
 	batchesData1,batchesLabel1 = [x for x in iter_minibatches(2,nn1_groups_data,nn1_groups_label)]
        	batchesData2,batchesLabel2 = [x for x in iter_minibatches(2,nn2_groups_data,nn2_groups_label)]
 	batchesData3,batchesLabel3 = [x for x in iter_minibatches(2,nn3_groups_data,nn3_groups_label)]
-
+	nnTogetherClassic = nnS.nn_build(1,[2,6,6,1],eta=eta,nonlin=nonlin)
+	nnTogetherDif = nnDif.nn_build(1,[2,6,6,1],eta=eta,nonlin=nonlin)
+	visitClassicBatches(nnTogetherClassic,batchesData1[:i]+batchesData2[:i]+batchesData3[:i],batchesLabel1[:i]+batchesLabel2[:i]+batchesLabel3[:i],it=iters)
 	visitClassicBatches(nnClassic1,batchesData1[:i],batchesLabel1[:i], it=iters)
-	
+	visitClassicBatches(nnClassic2,batchesData2[:i],batchesLabel2[:i], it=iters)
+	visitClassicBatches(nnClassic3,batchesData3[:i],batchesLabel3[:i], it=iters)
+	print len(batchesData1[:i]+batchesData2[:i]+batchesData3[:i])
         #differential_labels = differential_labels + dif_group_label[3*i] + dif_group_label[3*i + 1] + dif_group_label[3*i + 2]
         #visitbatches(nets, [nn1_groups_data[:i],nn2_groups_data[:i],nn3_groups_data[:i]], [nn1_groups_label[:i],nn2_groups_label[:i],nn3_groups_label[:i]], err, it=iters)
         visitbatches(nets, [batchesData1[:i],batchesData2[:i],batchesData3[:i]], [batchesLabel1[:i],batchesLabel2[:i],batchesLabel3[:i]], err, it=iters)
         #visitbatches([nets[1]], [batchesData1[:i]], [batchesLabel1[:i]], err, it=iters)
+	#visitbatches([nnTogetherDif], [batchesData1[:i]+batchesData2[:i]], [batchesLabel1[:i]+batchesLabel2[:i]], err, it=iters)
 
         #calculate error
         nnClassic5 = nnS.nn_build(1,[2,6,6,1],eta=eta,nonlin=nonlin)
-        testAcc = accuracyClassic(nnClassic5,validation_data,validation_label,thr=.05)
-        testAcc2 = accuracy(nnClassic5,validation_data,validation_label,thr=.05)
-        print "TEST ACC:  "+str(testAcc)+" " +str(testAcc2)
+        #testAcc = accuracyClassic(nnClassic5,validation_data,validation_label,thr=.05)
+        #testAcc2 = accuracy(nnClassic5,validation_data,validation_label,thr=.05)
+        togetherAcc = accuracy(nnTogetherClassic,validation_data,validation_label,thr=.05)
+        
+        
         classic = accuracyClassic(nnClassic1,validation_data,validation_label, thr=0.5)
         one = accuracy(nets[0], validation_data, validation_label, thr=0.5)
-        two = accuracy(nets[1], validation_data,validation_label, thr=0.5)
+        #two = accuracy(nets[1], validation_data,validation_label, thr=0.5)
         classic2 = accuracyClassic(nnClassic2,validation_data,validation_label, thr=0.5)
         classic3 = accuracyClassic(nnClassic3,validation_data,validation_label, thr=0.5)
         classic4 = accuracyClassic(nnClassic4,validation_data,validation_label, thr=0.5)
-        nat = nets[0]
         #build plottable arrays
         nn1Acc[te][i/10] = one
-        print i/10
+	newAcc = accuracy(nnTogetherDif,validation_data,validation_label,thr=.5)
         print "ACCURACY"
         print one
-        print two
-        print classic
+        print "^^^Decent acc  || total acc"
+        print togetherAcc
+        print "new acc  " + str(newAcc)
+      
         classAcc1[te][i/10] = classic
         classAcc2[te][i/10] = classic2
         classAcc3[te][i/10] = classic3
-        classAcc4[te][i/10] = classic4
+        classAcc4[te][i/10] = togetherAcc
 
         #print "us " + str(one) + " c1 " + str(classic) + " c2 " + str(classic2) + " cc " + str(classic3)
 nat = range(10)

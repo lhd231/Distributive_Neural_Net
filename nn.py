@@ -10,7 +10,8 @@ def _relu(x, eps=1e-5):
     return max(eps, x)
 
 
-def _d_relu(x, eps=1e-5): return 1. if x > eps else 0.0
+def _d_relu(x, eps=1e-5): 
+  return 1. if x > eps else 0.0
 
 
 def _sigmoid(x): return 1 / (1 + math.exp(-x))
@@ -133,7 +134,7 @@ def test_forward():
 
 def average_gradient(deltas, activations):
     dW = 0
-    for i in range(1):
+    for i in range(deltas.shape[1]):
         dW += np.outer(deltas[:,i], activations[:,i].T)
     return dW#/deltas.shape[1]
 
@@ -144,8 +145,8 @@ def gradient(nn, delta):
 
     # output
     dact = nn['nonlin'][-1][1]
-
     dW = average_gradient(delta*dact(nn['zs'][-1]), nn['activations'][-2])
+  
     nabla_b.append(np.mean(delta, axis=1))
     nabla_w.append(dW)
     for i in range(len(nn['weights']) - 2, -1, -1):
@@ -161,10 +162,12 @@ def gradient(nn, delta):
 
 def backprop(nn, nabla_w, nabla_b):
     eta = nn['eta']
-
+    asdf = ""
     for i in range(len(nn['weights'])):
         nn['weights'][i] -= eta * nabla_w[-i - 1]
+        asdf = asdf + str(nabla_w[-i-1])
         nn['biases'][i] -= eta * nabla_b[-i - 1]
+ 
 
 
 def expand_labels(labels):
@@ -193,8 +196,9 @@ def master_node(nn,data,labels):
         w,b = gradient(nn[n], delta)
         nabla_w += w
         nabla_b += b
-      nabla_w = [x / len(nn) for x in nabla_w]
-      nabla_b = [x / len(nn) for x in nabla_b]
+  
+      #nabla_w = [x / len(nn) for x in nabla_w]
+      #nabla_b = [x / len(nn) for x in nabla_b]
       for net in nn:
         backprop(net,nabla_w,nabla_b)
 #notes:  
