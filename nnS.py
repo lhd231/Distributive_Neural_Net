@@ -104,7 +104,7 @@ def forward(nn, data):
     :param data: a numpy n by m matrix where m in the number of input units in nn
     :return: the output layer activations
     """
-    nn['activations'] = [data[0]]
+    nn['activations'] = [data.T]
 
     nn['zs'] = []
     for w, s, b in map(None, nn['weights'], nn['nonlin'], nn['biases']):

@@ -107,7 +107,8 @@ def forward(nn, data):
     :param data: a numpy n by m matrix where m in the number of input units in nn
     :return: the output layer activations
     """
-    nn['activations'] = [data[0]]
+
+    nn['activations'] = [data.T]
 
     nn['zs'] = []
     for w, s, b in map(None, nn['weights'], nn['nonlin'], nn['biases']):
@@ -189,9 +190,7 @@ def master_node(nn,data,labels):
 
       nabla_b = []
       for n in range(len(nn)):
-
         r = forward(nn[n], data[n][i])
-      
         delta = d_cost(r,labels[n][i])
         w,b = gradient(nn[n], delta)
         nabla_w += w
