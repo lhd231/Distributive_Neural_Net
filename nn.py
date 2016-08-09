@@ -128,7 +128,7 @@ def test_forward():
     nn['nonlin'] = [(sigmoid, d_sigmoid)]
     x = np.array([1, 0])
     t = sigmoid(np.dot(nn['weights'][1], sigmoid(np.dot(nn['weights'][0], x) + nn['biases'][0]) + nn['biases'][1]))
-    #ipdb.set_trace()
+    #ipdb.set_trace()seed
     print forward(nn, x)
     print t
 
@@ -185,19 +185,35 @@ def master_node(nn,data,labels):
     minim = len(data[0])
     newData = data#np.fliplr(np.asarray(data))
     newLabel = labels#np.fliplr(np.asarray(labels))
+    print minim * len(nn)
     for i in range(minim):
-      nabla_w = []
+      nabla_w = ["NULL"]*3
 
-      nabla_b = []
+      nabla_b = ["NULL"]*3
       for n in range(len(nn)):
         r = forward(nn[n], data[n][i])
+        
         delta = d_cost(r,labels[n][i])
         w,b = gradient(nn[n], delta)
-        nabla_w += w
-        nabla_b += b
+	#print len(w)
+	#print len(b)
+	#print type(nabla_w[0])
+	for i in range(len(w)):
+		if nabla_w[i] == "NULL":
+			nabla_w[i] = w[i]
+		else:
+			nabla_w[i] += w[i]
+        	if nabla_b[i] == "NULL":
+			nabla_b[i] = b[i]
+		else:
+			nabla_b[i] += b[i]
+	#print len(nabla_w)
+	if i == 5:
+		exit(1)
+       
   
-      #nabla_w = [x / len(nn) for x in nabla_w]
-      #nabla_b = [x / len(nn) for x in nabla_b]
+      nabla_w = [x / len(nn) for x in nabla_w]
+      nabla_b = [x / len(nn) for x in nabla_b]
       for net in nn:
         backprop(net,nabla_w,nabla_b)
 #notes:  

@@ -15,7 +15,7 @@ from multiprocessing.dummy import Pool as ThreadPool
 
 minibatch = 2
 nonlin = 'relu'
-eta = 0.1
+eta = 0.025
 pool = ThreadPool(10)
 
 def gauss(x,mu,sigma):
@@ -62,33 +62,27 @@ def split(data, label):
     if y==0 and a < g1:
       green1.append(x)
       green1Label.append(y)
-      dif1.append(x)
-      dif1Label.append(y)
+
     elif y==1 and a < g2:
       green2.append(x)
       green2Label.append(y)
-      dif2.append(x)
-      dif2Label.append(y)
+ 
     elif y==0 and a< b1:
       brown1.append(x)
       brown1Label.append(y)
-      dif1.append(x)
-      dif1Label.append(y)
+
     elif y==1 and a < b2:
       brown2.append(x)
       brown2Label.append(y)
-      dif2.append(x)
-      dif2Label.append(y)
+
     elif y==0 and a < r1:
       red1.append(x)
       red1Label.append(y)
-      dif1.append(x)
-      dif1Label.append(y)
+
     elif y==1 and a < r2:
       red2.append(x)
       red2Label.append(y)
-      dif2.append(x)
-      dif2Label.append(y)
+
     i += 1
   return_list_data = list()
   return_list_label = list()
@@ -137,9 +131,17 @@ def visitClassicBatches(nn,data,labels, it=1000):
 	  nnS.minibatch_fit(nn, data[cc], labels[cc])
 
 def accuracy(nn, data, label, thr = 0.5):
-
-    predict  = [ np.int8(nnS.forward(nn,data[c,:]) > thr) == label[c] for c in range(data.shape[0])]
+    
+    predict  = [ np.int8(nnDif.forward(nn,data[c,:]) > thr) == label[c] for c in range(data.shape[0])]
+    plotArrX = []
+    plotArrY = []
+    for pnt in data:
+      plotArrX.append(pnt[0])
+      plotArrY.append(pnt[1])
+    #print "WHAT THE FUCK"
   
+    plt.scatter(plotArrX,plotArrY, c=[ np.int8(nnDif.forward(nn,data[c,:]) > thr) for c in range(data.shape[0])])
+    plt.show()
     return 100 * np.double(len(np.where(np.asarray(predict)==False)[0]))/np.double(len(predict))
 def accuracyClassic(nn, data, label, thr = 0.5):
     predict  = [ np.int8(nnS.forward(nn,data[c,:]) > thr) == label[c] for c in range(data.shape[0])]
@@ -157,9 +159,9 @@ classAcc4 = [[0 for i in range(50)] for j in range(10)]
 number_of_nets = 3
 def sing_run(te):
     print te
-    data, label = make_moons(n_samples=6000, shuffle=True, noise=0.1,random_state = int(time.time()))
+    data, label = make_moons(n_samples=2000, shuffle=True, noise=0.1,random_state = int(time.time()))
     
-    data,validation_data,label,validation_label = train_test_split(data,label,train_size = .40)
+    data,validation_data,label,validation_label = train_test_split(data,label,train_size = .38)
         #separate the data set into buckets
  
     total_data, total_label, total_dif_data, total_dif_label = split(data,label)
@@ -175,18 +177,12 @@ def sing_run(te):
     random.seed(4)
     random.shuffle(total_label[1])
     random.seed(4)
+    random.shuffle(total_label[2])
     totlistX = []
     totlistY = []
-    for item in total_data[0]:
-      totlistX.append(item[0])
-      totlistY.append(item[1])
-    for item in total_data[1]:
-      totlistX.append(item[0])
-      totlistY.append(item[1])
-    for item in total_data[2]:
-      totlistX.append(item[0])
-      totlistY.append(item[1])
-    plt.scatter(totlistX,totlistY, c=total_label[0]+total_label[1]+total_label[2])
+
+
+    #plt.show()
     #random.shuffle(total_label[2])
     '''for i in range(3):
       for item in total_data[i]:
@@ -202,8 +198,7 @@ def sing_run(te):
     nn2_groups_label = total_label[1]#list(group_list(total_label[1],1))
     nn3_groups_data = total_data[2]#list(group_list(total_data[2],1))
     nn3_groups_label = total_label[2]#list(group_list(total_label[2],1))
-    dif_groups_data = nn1_groups_data +nn2_groups_data +nn3_groups_data
-    dif_groups_label = nn1_groups_label + nn2_groups_label + nn3_groups_label
+
    
 
  
@@ -225,7 +220,23 @@ def sing_run(te):
     differential_groups = dif_group_data[0]
     differential_labels = dif_group_label[0]
     for i in range(10,minim - minim%10,10):#
-
+	totlistX = []
+	totlistY = []
+	for item in total_data[0][:i]:
+	  x=2
+	  totlistX.append(item[0])
+	  totlistY.append(item[1])
+	for item in total_data[1][:i]:
+	  x=2
+	  totlistX.append(item[0])
+	  totlistY.append(item[1])
+	for item in total_data[2][:i]:
+	  totlistX.append(item[0])
+	  totlistY.append(item[1])
+	print len(totlistX)
+	print len(total_label[0][:i]+total_label[1][:i]+total_label[2][:i])
+	#plt.scatter(totlistX,totlistY,c=total_label[0][:i]+total_label[1][:i]+total_label[2][:i])
+	#plt.show()
 	#TODO:  Here, we need to rewrite the function so it 
         groups_data = list()
         groups_label = list()
@@ -235,7 +246,8 @@ def sing_run(te):
         nnClassic2 = nnS.nn_build(1,[2,6,6,1],eta=eta,nonlin=nonlin)
         for x in range(number_of_nets):
             nets.append(nnDif.nn_build(1,[2,6,6,1],eta=eta,nonlin=nonlin))
-        
+        print number_of_nets
+        nextNet = nnDif.nn_build(1,[2,6,6,1],eta=eta,nonlin=nonlin)
         #Build the two site data sets
         #groups_data.append(np.asarray([item for sublist in nn1_groups_data[:i+1] for item in sublist]))
         #groups_data.append(np.asarray([item for sublist in nn2_groups_data[:i+1] for item in sublist]))
@@ -258,70 +270,77 @@ def sing_run(te):
         #t4 = [x for x in iter_minibatches(1,total_groups_data.T, total_groups_label)]
         err = []
         #Run the batches through the algos
-        iters = 100
+        iters = 1000
         #visitClassicBatches(nnClassic2,nn2_groups_data[:i],nn2_groups_label[:i], it=iters)
         #visitClassicBatches(nnClassic3,nn3_groups_data[:i],nn3_groups_label[:i], it=iters)
         #visitClassicBatches(nnClassic4,t4, it=iters)
         #visitbatches(nets, batches, err, it=iters)
 	#print "finish classics"
         #differential_groups = differential_groups + dif_group_data[3*i] +dif_group_data[3*i + 1] + dif_group_data[3*i + 2]
-	batchesData1,batchesLabel1 = [x for x in iter_minibatches(1,nn1_groups_data,nn1_groups_label)]
-       	batchesData2,batchesLabel2 = [x for x in iter_minibatches(1,nn2_groups_data,nn2_groups_label)]
-	batchesData3,batchesLabel3 = [x for x in iter_minibatches(1,nn3_groups_data,nn3_groups_label)]
+	batchesData1,batchesLabel1 = [x for x in iter_minibatches(2,nn1_groups_data,nn1_groups_label)]
+       	batchesData2,batchesLabel2 = [x for x in iter_minibatches(2,nn2_groups_data,nn2_groups_label)]
+	batchesData3,batchesLabel3 = [x for x in iter_minibatches(2,nn3_groups_data,nn3_groups_label)]
 	nnTogetherClassic = nnS.nn_build(1,[2,6,6,1],eta=eta,nonlin=nonlin)
+	classicWing = nnS.nn_build(1,[2,6,6,1],eta=eta,nonlin=nonlin)
 	nnTogetherDif = nnDif.nn_build(1,[2,6,6,1],eta=eta,nonlin=nonlin)
-	visitClassicBatches(nnTogetherClassic,batchesData1[:i]+batchesData2[:i]+batchesData3[:i],batchesLabel1[:i]+batchesLabel2[:i]+batchesLabel3[:i],it=iters)
-	visitClassicBatches(nnClassic1,batchesData1[:i],batchesLabel1[:i], it=iters)
-	visitClassicBatches(nnClassic2,batchesData2[:i],batchesLabel2[:i], it=iters)
-	visitClassicBatches(nnClassic3,batchesData3[:i],batchesLabel3[:i], it=iters)
+	print "LENGTH:   " +str(len(batchesData1[:i]))
+	#visitClassicBatches(classicWing,batchesData2[:i],batchesLabel2[:i],it=iters)
+	#visitClassicBatches(nnTogetherClassic,batchesData1[:i]+batchesData2[:i]+batchesData3[:i],batchesLabel1[:i]+batchesLabel2[:i]+batchesLabel3[:i],it=iters)
+	#visitClassicBatches(nnClassic1,batchesData1[:i],batchesLabel1[:i], it=iters)
+	#visitClassicBatches(nnClassic2,batchesData2[:i],batchesLabel2[:i], it=iters)
+	#visitClassicBatches(nnClassic3,batchesData3[:i],batchesLabel3[:i], it=iters)
 	
 	plotlistX = []
 	plotlistY = []
 	plotlistColor = []
-	'''for batch in batchesData1[:i]:
+	for batch in batchesData1[:i]:
 	  for tup in batch:
-	    for sid in tup:
-	      plotlistX.append(sid[0])
-	      plotlistY.append(sid[1])
-	for batch in batchesData2[:i]:
-	  for tup in batch:
-	    for sid in tup:
-	      plotlistX.append(sid[0])
-	      plotlistY.append(sid[1])
-	for batch in batchesData3[:i]:
-	  for tup in batch:
-	    x = 2
+	      plotlistX.append(tup[0])
+	      plotlistY.append(tup[1])
+	#for batch in batchesData2[:i]:
+	#  for tup in batch:
+	#    for sid in tup:
+	#      plotlistX.append(sid[0])
+	#      plotlistY.append(sid[1])
+	#for batch in batchesData3[:i]:
+	#  for tup in batch:
+	#    x = 2
 	    #plotlistX.append(tup[0])
 	    #plotlistY.append(tup[1])
 	for arr in batchesLabel1[:i]:
 	  for tup in arr:
-	    plotlistColor.append(tup[0])
-	    plotlistColor.append(tup[0])
-	for arr in batchesLabel2[:i]:
-	  for tup in arr:
-	    plotlistColor.append(tup[0])
-	    plotlistColor.append(tup[0])
+	    print tup
+	    plotlistColor.append(tup)
+	#for arr in batchesLabel2[:i]:
+	#  for tup in arr:
+	#    plotlistColor.append(tup[0])
+	#    plotlistColor.append(tup[0])
 
-	#plt.scatter(plotlistX,plotlistY,c=plotlistColor)
+	plt.scatter(plotlistX,plotlistY,c=plotlistColor)
 	     #+batchesLabel2[:i]+batchesLabel3[:i])
 	
-	#plt.show()'''
+	plt.show()
 	
         #differential_labels = differential_labels + dif_group_label[3*i] + dif_group_label[3*i + 1] + dif_group_label[3*i + 2]
         #visitbatches(nets, [nn1_groups_data[:i],nn2_groups_data[:i],nn3_groups_data[:i]], [nn1_groups_label[:i],nn2_groups_label[:i],nn3_groups_label[:i]], err, it=iters)
+	batchesList = [batchesData1[:i],batchesData2[:i],batchesData3[:i]]
+	labelList = [batchesLabel1[:i],batchesLabel2[:i],batchesLabel3[:i]]
 	visitbatches(nets, [batchesData1[:i],batchesData2[:i],batchesData3[:i]], [batchesLabel1[:i],batchesLabel2[:i],batchesLabel3[:i]], err, it=iters)
+        batches2 = [batchesData1[:i]+batchesData2[:i]+batchesData3[:i]]
+	list2 = [batchesLabel1[:i]+batchesLabel2[:i]+batchesLabel3[:i]]
+
         #visitbatches([nets[1]], [batchesData1[:i]], [batchesLabel1[:i]], err, it=iters)
-	#visitbatches([nnTogetherDif], [batchesData1[:i]+batchesData2[:i]], [batchesLabel1[:i]+batchesLabel2[:i]], err, it=iters)
+	#visitbatches([nextNet], [batchesData1[:i]+batchesData2[:i]+batchesData3[:i]], [batchesLabel1[:i]+batchesLabel2[:i]+batchesLabel3[:i]], err, it=iters)
 
         #calculate error
         nnClassic5 = nnS.nn_build(1,[2,6,6,1],eta=eta,nonlin=nonlin)
         #testAcc = accuracyClassic(nnClassic5,validation_data,validation_label,thr=.05)
         #testAcc2 = accuracy(nnClassic5,validation_data,validation_label,thr=.05)
-        togetherAcc = accuracy(nnTogetherClassic,validation_data,validation_label,thr=.05)
+        togetherAcc = accuracyClassic(nnTogetherClassic,validation_data,validation_label,thr=.05)
         
         
-        classic = accuracyClassic(nnClassic1,validation_data,validation_label, thr=0.5)
-        one = accuracy(nets[0], validation_data, validation_label, thr=0.5)
+        classic = accuracyClassic(classicWing,validation_data,validation_label, thr=0.5)
+        one = accuracyClassic(nets[0], validation_data, validation_label, thr=0.5)
         #two = accuracy(nets[1], validation_data,validation_label, thr=0.5)
         classic2 = accuracyClassic(nnClassic2,validation_data,validation_label, thr=0.5)
         classic3 = accuracyClassic(nnClassic3,validation_data,validation_label, thr=0.5)
@@ -329,7 +348,7 @@ def sing_run(te):
         #build plottable arrays
   
         nn1Acc[te][i/10] = one
-	newAcc = accuracy(nnTogetherDif,validation_data,validation_label,thr=.5)
+	#newAcc = accuracy(nnTogetherDif,validation_data,validation_label,thr=.5)
         print "ACCURACY"
         print one
         print "^^^Decent acc  || total acc"
