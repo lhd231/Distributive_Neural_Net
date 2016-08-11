@@ -12,7 +12,7 @@ from multiprocessing.dummy import Pool as ThreadPool
 minibatch = 2
 nonlin = 'relu'
 eta = 0.0025
-pool = ThreadPool(6)
+pool = ThreadPool(30)
 
 def gauss(x,mu,sigma):
   return norm(mu,[[sigma,0],[0, sigma]]).pdf(x)
@@ -24,6 +24,7 @@ def bias(data, label, bias):
   count = 0
   totalCount = 500
   for x,y in zip(data,label):
+
     if totalCount > 0:
       if y == 0 and count < totalCount *bias:
 	dnew.append(x)
@@ -34,6 +35,7 @@ def bias(data, label, bias):
 	dnew.append(x)
 	lnew.append(y)
 	totalCount -= 1
+
   return dnew, lnew
 
 
@@ -51,6 +53,7 @@ def iter_minibatches(chunksize, data):
 
 def visitbatches(nn, batches, labels, errlist, it=1000):
     for c in range(it):
+
       nnDif.master_node(nn,batches,labels)
         #for i in range(len(batches)):
          #   batch = batches[i]
@@ -74,31 +77,18 @@ def group_list(l, group_size):
     for i in xrange(0, len(l), group_size):
         yield np.asarray(l[i:i+group_size]).T
 #TODO:  make these guys 2D.  So we can avoid the problem of [(i+j)/2  + (k +l+m+n)] / 4
-
-def single_run(s):
-    print s
-    siteCount = 0
-    if s == 2:
+def sing_run(counts):
       siteCount = 0
-    if s == 10:
-      siteCount = 1
-    if s == 100:
-      siteCount = 2
-    
-        #separate the data set into buckets
-    #TODO: Move this guy to the loop
-    #TODO: Split data and label
-
-    
-    #The two separate site sets
-    nat = []
-    #TODO:  Set this guy to an array. 2, 10, 100
-    
-    for te in range(10):
+      if counts[1] == 2:
+	siteCount = 0
+      if counts[1] == 10:
+	siteCount = 1
+      if counts[1] == 100:
+	siteCount = 2
       data, label = make_moons(n_samples=2000, noise=0.05, shuffle=True, random_state = int(time.time()))
         
       data,validation_data,label,validation_label = train_test_split(data,label,train_size = .60)
-      print te
+     
       biases = [.02,.04,.08,.14,.20,.25,.30,.35,.40,.45,.50]
       biasCount = 0
       for b in biases:
@@ -106,9 +96,12 @@ def single_run(s):
 	nData, nLabel = (bias(data,label,b))
 
 	total_data = list(group_list(nData,1))
+	print "TOTAL DATA"
+	
 	total_label = list(group_list(nLabel,1))
-        number_of_nets = s
 
+        number_of_nets = counts[1]
+	
         nn_groups_data = []
         nn_groups_label = list()
         groups_data = list()
@@ -116,7 +109,7 @@ def single_run(s):
         nets = list()
         batches = list()
         for j in range(number_of_nets):
-	    dataCount = len(total_data) / s
+	    dataCount = len(total_data) / counts[1]
             #x = (total_data[int(float(j)/number_of_nets*(len(total_data))):int(float((j+1))/number_of_nets*(len(total_data)))])
             x = total_data[dataCount * j : dataCount*(j+1)]
 
@@ -128,8 +121,7 @@ def single_run(s):
             #print "HERE END"
             nn_groups_label.append(total_label[dataCount * j : dataCount*(j+1)])
         #print len(nn_groups_data[1])
-        print "HERE IS DATA LENGTH  " + str(len(nn_groups_data[0]))
-        print "HERE ARE NNS NUMB    " + str(len(nn_groups_data))
+
         nets = list()  #Our differential networks
         batches = list() #a list to store every separate site set
         labelBatches = list()
@@ -165,6 +157,7 @@ def single_run(s):
             #visitClassicBatches(nnClassic1,t, it=iters)
             #visitClassicBatches(nnClassic3,t3, it=iters)
 	start = time.time()
+
 	visitbatches(nets, nn_groups_data, nn_groups_label, err, it=iters)
         print time.time() - start
             #calculate error
@@ -173,7 +166,7 @@ def single_run(s):
             #classic3 = accuracyClassic(nnClassic3,validation_data,validation_label, thr=0.5)
 	nat = nets[0]
             #build plottable arrays
-	nn1Acc[siteCount][te][biasCount] += one
+	nn1Acc[siteCount][counts[0]][biasCount] += one
 	print one
             #classAcc1[te][s/2] += classic
             #classAcc3[te][s/2] += classic3
@@ -181,14 +174,30 @@ def single_run(s):
             #print "us " + str(one) + " c1 " + str(classic) + " cc " + str(classic3)
 
 	biasCount +=1
-    siteCount += 1
+def batch_run(s):
+    print s
+
+    
+        #separate the data set into buckets
+    #TODO: Move this guy to the loop
+    #TODO: Split data and label
+
+    
+    #The two separate site sets
+    nat = range(10)
+    siteNumbers = [s] * 10
+    #TODO:  Set this guy to an array. 2, 10, 100
+    #pool.map(sing_run,zip(nat,siteNumbers))
+    sing_run(zip(nat,siteNumbers)[0])
+      
 nn1Acc = [[[0 for k in range(11)] for i in range(10)] for j in range(3)]
 
 number_of_nets = 10
 sites = [2,10,100]
 siteCount = [0,1,2]
-single_run(100)
-#pool.map(single_run,sites)
+#single_run(100)
+batch_run(2)
+#pool.map(batch_run,sites)
     
 	
         #classAcc3[te][s/2] /= len(nn_groups_data)
