@@ -23,10 +23,37 @@ def gauss(x,mu,sigma):
 #  y = 1 / (math.sqrt(2.0 * math.pi * sigma) * (math.exp(((x[0] - mu[0] + 0.0) / sigma **2) + ((x[1] - mu[1] + 0.0) / sigma **2))))
   return norm(mu,[[sigma,0],[0, sigma]]).pdf(x)
 
+def splitREFACTOR(data, label):
+  points = []
+  points.append((0,1))
+  points.append((1,-.5))
+  points.append((-.9,.4))
+  points.append((0,.4))
+  points.append((.8,.4))
+  points.append((1.8,0))
+  siteLocalData = [[] for i in range(6)]
+  siteLocalLabel = [[] for i in range(6)]
+  pointsGauss = []
+  for x,y in zip(data,label):
+    for p in points:
+      pointsGauss.append(gauss(x,p,.1))
+    a = random.random()
+    cont = True
+    for i in range(6):
+      if a < pointsGauss[i] and y == i%2 and cont:
+        siteLocalData[i].append(x)
+        siteLocalLabel[i].append(y)
+	cont = False
+  return_data = []
+  return_label = []
+  for i in range(3):
+    return_data.append(siteLocalData[i*2]+siteLocalData[i*2+1])
+    return_label.append(siteLocalLabel[i*2]+siteLocalLabel[i*2+1])
+  return return_data,return_label
 
 def split(data, label):
   #plt.scatter(data[:,0],data[:,1], c=label)
-  
+  splitREFACTOR(data,label)
   pointMid1 = (0,1)
   pointMid2 = (1,-.5)
   pointEdge1 = (-.9,.4)
@@ -138,10 +165,8 @@ def accuracy(nn, data, label, thr = 0.5):
     for pnt in data:
       plotArrX.append(pnt[0])
       plotArrY.append(pnt[1])
-    #print "WHAT THE FUCK"
   
-    plt.scatter(plotArrX,plotArrY, c=[ np.int8(nnDif.forward(nn,data[c,:]) > thr) for c in range(data.shape[0])])
-    plt.show()
+ 
     return 100 * np.double(len(np.where(np.asarray(predict)==False)[0]))/np.double(len(predict))
 def accuracyClassic(nn, data, label, thr = 0.5):
     predict  = [ np.int8(nnS.forward(nn,data[c,:]) > thr) == label[c] for c in range(data.shape[0])]
@@ -164,7 +189,7 @@ def sing_run(te):
     data,validation_data,label,validation_label = train_test_split(data,label,train_size = .38)
         #separate the data set into buckets
  
-    total_data, total_label, total_dif_data, total_dif_label = split(data,label)
+    total_data, total_label,A,B = split(data,label)
     
     random.seed(4)
     random.shuffle(total_data[0])
@@ -180,8 +205,23 @@ def sing_run(te):
     random.shuffle(total_label[2])
     totlistX = []
     totlistY = []
+    for item in total_data[0]:
+      x=2
+      #totlistX.append(item[0])
+      #totlistY.append(item[1])
+    for item in total_data[1]:
+	  x=2
+	  #totlistX.append(item[0])
+	  #totlistY.append(item[1])
+    for item in total_data[2]:
+	  x=2
+	  totlistX.append(item[0])
+	  totlistY.append(item[1])
+    print len(totlistX)
 
 
+    plt.scatter(totlistX,totlistY,c=total_label[2])
+    #+total_label[1]+total_label[2]
     #plt.show()
     #random.shuffle(total_label[2])
     '''for i in range(3):
@@ -192,17 +232,17 @@ def sing_run(te):
     #total_label = list(group_list(label,10))
     #The two separate site sets
     #nn1_groups_data = total_data[:len(total_data)/2+1]
-    nn1_groups_data = total_data[0]#list(group_list(total_data[0],1))
-    nn1_groups_label = total_label[0]#list(group_list(total_label[0],1))
-    nn2_groups_data = total_data[1]#list(group_list(total_data[1],1))
-    nn2_groups_label = total_label[1]#list(group_list(total_label[1],1))
-    nn3_groups_data = total_data[2]#list(group_list(total_data[2],1))
-    nn3_groups_label = total_label[2]#list(group_list(total_label[2],1))
+    #nn1_groups_data = total_data[0]#list(group_list(total_data[0],1))
+    #nn1_groups_label = total_label[0]#list(group_list(total_label[0],1))
+    #nn2_groups_data = total_data[1]#list(group_list(total_data[1],1))
+    #nn2_groups_label = total_label[1]#list(group_list(total_label[1],1))
+    #nn3_groups_data = total_data[2]#list(group_list(total_data[2],1))
+    #nn3_groups_label = total_label[2]#list(group_list(total_label[2],1))
 
    
 
  
-    minim = min(min(len(nn1_groups_data),len(nn2_groups_data)),len(nn3_groups_data))
+    minim = min(min(len(total_data[0]),len(total_data[1])),len(total_data[2]))
     #print "length of site one group data " + str(len(nn1_groups_data))
     #nn2_groups_data = total_data[len(total_data)/2:]
     #nn1_groups_label = total_label[:len(total_data)/2+1]
@@ -214,11 +254,9 @@ def sing_run(te):
         
     nat = []
 
-    dif_group_data = nn1_groups_data + nn2_groups_data + nn3_groups_data
+
   
-    dif_group_label = nn1_groups_label + nn2_groups_label + nn3_groups_label
-    differential_groups = dif_group_data[0]
-    differential_labels = dif_group_label[0]
+
     for i in range(10,minim - minim%10,10):#
 	totlistX = []
 	totlistY = []
@@ -242,8 +280,8 @@ def sing_run(te):
         groups_label = list()
         nets = list()
         batches = list()
-        nnClassic1 = nnS.nn_build(1,[2,6,6,1],eta=eta,nonlin=nonlin)
-        nnClassic2 = nnS.nn_build(1,[2,6,6,1],eta=eta,nonlin=nonlin)
+        #nnClassic1 = nnS.nn_build(1,[2,6,6,1],eta=eta,nonlin=nonlin)
+        #nnClassic2 = nnS.nn_build(1,[2,6,6,1],eta=eta,nonlin=nonlin)
         for x in range(number_of_nets):
             nets.append(nnDif.nn_build(1,[2,6,6,1],eta=eta,nonlin=nonlin))
         print number_of_nets
@@ -259,8 +297,8 @@ def sing_run(te):
         #total_groups_data = np.asarray([item for sublist in groups_data for item in sublist])
         #total_groups_label =  np.asarray([item for sublist in groups_label for item in sublist])
         #Our classic combined nn    
-        nnClassic3 = nnS.nn_build(1,[2,6,6,1],eta=eta,nonlin=nonlin)
-        nnClassic4 = nnS.nn_build(1,[2,6,6,1],eta=eta,nonlin=nonlin)
+        #nnClassic3 = nnS.nn_build(1,[2,6,6,1],eta=eta,nonlin=nonlin)
+        #nnClassic4 = nnS.nn_build(1,[2,6,6,1],eta=eta,nonlin=nonlin)
         
         #for s in range(number_of_nets):
             #batches.append([x for x in iter_minibatches(2,groups_data[s].T, groups_label[s])])
@@ -270,22 +308,26 @@ def sing_run(te):
         #t4 = [x for x in iter_minibatches(1,total_groups_data.T, total_groups_label)]
         err = []
         #Run the batches through the algos
-        iters = 1000
+        iters = 700
         #visitClassicBatches(nnClassic2,nn2_groups_data[:i],nn2_groups_label[:i], it=iters)
         #visitClassicBatches(nnClassic3,nn3_groups_data[:i],nn3_groups_label[:i], it=iters)
         #visitClassicBatches(nnClassic4,t4, it=iters)
         #visitbatches(nets, batches, err, it=iters)
 	#print "finish classics"
         #differential_groups = differential_groups + dif_group_data[3*i] +dif_group_data[3*i + 1] + dif_group_data[3*i + 2]
-	batchesData1,batchesLabel1 = [x for x in iter_minibatches(2,nn1_groups_data,nn1_groups_label)]
-       	batchesData2,batchesLabel2 = [x for x in iter_minibatches(2,nn2_groups_data,nn2_groups_label)]
-	batchesData3,batchesLabel3 = [x for x in iter_minibatches(2,nn3_groups_data,nn3_groups_label)]
+	batchesData1,batchesLabel1 = [x for x in iter_minibatches(2,total_data[0],total_label[0])]
+       	batchesData2,batchesLabel2 = [x for x in iter_minibatches(2,total_data[1],total_label[1])]
+	batchesData3,batchesLabel3 = [x for x in iter_minibatches(2,total_data[2],total_label[2])]
 	nnTogetherClassic = nnS.nn_build(1,[2,6,6,1],eta=eta,nonlin=nonlin)
 	classicWing = nnS.nn_build(1,[2,6,6,1],eta=eta,nonlin=nonlin)
+	classicWing2 = nnS.nn_build(1,[2,6,6,1],eta=eta,nonlin=nonlin)
+	classicLeft = nnS.nn_build(1,[2,6,6,1],eta=eta,nonlin=nonlin)
 	nnTogetherDif = nnDif.nn_build(1,[2,6,6,1],eta=eta,nonlin=nonlin)
 	print "LENGTH:   " +str(len(batchesData1[:i]))
-	#visitClassicBatches(classicWing,batchesData2[:i],batchesLabel2[:i],it=iters)
-	#visitClassicBatches(nnTogetherClassic,batchesData1[:i]+batchesData2[:i]+batchesData3[:i],batchesLabel1[:i]+batchesLabel2[:i]+batchesLabel3[:i],it=iters)
+#	visitClassicBatches(classicWing,batchesData2[:i],batchesLabel2[:i],it=iters)
+	#visitClassicBatches(classicWing2,batchesData2[:i],batchesLabel2[:i],it=iters)
+#	visitClassicBatches(classicLeft,batchesData1[:i],batchesLabel1[:i],it=iters)
+#	visitClassicBatches(nnTogetherClassic,batchesData1[:i]+batchesData2[:i]+batchesData3[:i],batchesLabel1[:i]+batchesLabel2[:i]+batchesLabel3[:i],it=iters)
 	#visitClassicBatches(nnClassic1,batchesData1[:i],batchesLabel1[:i], it=iters)
 	#visitClassicBatches(nnClassic2,batchesData2[:i],batchesLabel2[:i], it=iters)
 	#visitClassicBatches(nnClassic3,batchesData3[:i],batchesLabel3[:i], it=iters)
@@ -309,7 +351,6 @@ def sing_run(te):
 	    #plotlistY.append(tup[1])
 	for arr in batchesLabel1[:i]:
 	  for tup in arr:
-	    print tup
 	    plotlistColor.append(tup)
 	#for arr in batchesLabel2[:i]:
 	#  for tup in arr:
@@ -319,12 +360,14 @@ def sing_run(te):
 	plt.scatter(plotlistX,plotlistY,c=plotlistColor)
 	     #+batchesLabel2[:i]+batchesLabel3[:i])
 	
-	plt.show()
+	#plt.show()
 	
         #differential_labels = differential_labels + dif_group_label[3*i] + dif_group_label[3*i + 1] + dif_group_label[3*i + 2]
         #visitbatches(nets, [nn1_groups_data[:i],nn2_groups_data[:i],nn3_groups_data[:i]], [nn1_groups_label[:i],nn2_groups_label[:i],nn3_groups_label[:i]], err, it=iters)
 	batchesList = [batchesData1[:i],batchesData2[:i],batchesData3[:i]]
 	labelList = [batchesLabel1[:i],batchesLabel2[:i],batchesLabel3[:i]]
+	print [batchesLabel1[:i],batchesLabel2[:i],batchesLabel3[:i]][0]
+	exit(0)
 	visitbatches(nets, [batchesData1[:i],batchesData2[:i],batchesData3[:i]], [batchesLabel1[:i],batchesLabel2[:i],batchesLabel3[:i]], err, it=iters)
         batches2 = [batchesData1[:i]+batchesData2[:i]+batchesData3[:i]]
 	list2 = [batchesLabel1[:i]+batchesLabel2[:i]+batchesLabel3[:i]]
@@ -333,18 +376,20 @@ def sing_run(te):
 	#visitbatches([nextNet], [batchesData1[:i]+batchesData2[:i]+batchesData3[:i]], [batchesLabel1[:i]+batchesLabel2[:i]+batchesLabel3[:i]], err, it=iters)
 
         #calculate error
-        nnClassic5 = nnS.nn_build(1,[2,6,6,1],eta=eta,nonlin=nonlin)
+        #nnClassic5 = nnS.nn_build(1,[2,6,6,1],eta=eta,nonlin=nonlin)
         #testAcc = accuracyClassic(nnClassic5,validation_data,validation_label,thr=.05)
         #testAcc2 = accuracy(nnClassic5,validation_data,validation_label,thr=.05)
         togetherAcc = accuracyClassic(nnTogetherClassic,validation_data,validation_label,thr=.05)
         
         
         classic = accuracyClassic(classicWing,validation_data,validation_label, thr=0.5)
+	#classic2 = accuracyClassic(classicWing2,validation_data,validation_label, thr=0.5)
+	classicLeft = accuracyClassic(classicLeft,validation_data,validation_label, thr=0.5)
         one = accuracyClassic(nets[0], validation_data, validation_label, thr=0.5)
         #two = accuracy(nets[1], validation_data,validation_label, thr=0.5)
-        classic2 = accuracyClassic(nnClassic2,validation_data,validation_label, thr=0.5)
-        classic3 = accuracyClassic(nnClassic3,validation_data,validation_label, thr=0.5)
-        classic4 = accuracyClassic(nnClassic4,validation_data,validation_label, thr=0.5)
+        #classic2 = accuracyClassic(nnClassic2,validation_data,validation_label, thr=0.5)
+        #classic3 = accuracyClassic(nnClassic3,validation_data,validation_label, thr=0.5)
+        #classic4 = accuracyClassic(nnClassic4,validation_data,validation_label, thr=0.5)
         #build plottable arrays
   
         nn1Acc[te][i/10] = one
@@ -353,16 +398,17 @@ def sing_run(te):
         print one
         print "^^^Decent acc  || total acc"
         print togetherAcc
-        print "new acc  " + str(classic)
+        print "MIDDLE  " + str(classic)
+	print "Left side:  "+ str(classicLeft)
       
         classAcc1[te][i/10] = classic
-        classAcc2[te][i/10] = classic2
-        classAcc3[te][i/10] = classic3
+        #classAcc2[te][i/10] = classic2
+	classAcc3[te][i/10] = classicLeft
         classAcc4[te][i/10] = togetherAcc
 
         #print "us " + str(one) + " c1 " + str(classic) + " c2 " + str(classic2) + " cc " + str(classic3)
 nat = range(10)
-sing_run(3)
+sing_run(0)
 #pool.map(sing_run,nat)
 #nn1Acc[:] = [x / 10 for x in nn1Acc]
 #classAcc1[:] = [x / 10 for x in classAcc1]
@@ -370,7 +416,7 @@ sing_run(3)
 #classAcc3[:] = [x / 10 for x in classAcc3]
 np.savetxt("nn1Acc-lowiters-gaussProb.txt",nn1Acc)
 np.savetxt("classAcc1-lowiters-gaussProb.txt",classAcc1)
-np.savetxt("classAcc2-lowiters-gaussProb.txt",classAcc2)
+#np.savetxt("classAcc2-lowiters-gaussProb.txt",classAcc2)
 np.savetxt("classAcc3-lowiters-gaussProb.txt",classAcc3)
 np.savetxt("classAcc-lowiters-gaussProb.txt",classAcc4)
 #plt.xlabel("Number of batches [of size 50]")

@@ -29,6 +29,7 @@ def iter_minibatches(chunksize, data, labels):
 
 def visitbatches(nn, batches, labelBatches, errlist, it=1000):
     for c in range(it):
+	    print c
 	    #print "len of things " + str(len(nn)) + " " + str(len(batches[0]))
             nnDif.master_node(nn, batches, labelBatches)
             #err.append(r)
@@ -56,8 +57,8 @@ def single_run(te):
     data,validation_data,label,validation_label = train_test_split(data,label,train_size = .30)
         #separate the data set into buckets
 
-    total_data = list(group_list(data,1))
-    total_label = list(group_list(label,1))
+    total_data = data#list(group_list(data,1))
+    total_label = label#list(group_list(label,1))
     
     #The two separate site sets
 
@@ -67,9 +68,10 @@ def single_run(te):
 	nn_groups_data = []
 	nn_groups_label = []
 	number_of_nets = s
+	print s
 	for x in range(number_of_nets):
             nets.append(nnDif.nn_build(1,[2,6,6,1],eta=eta,nonlin=nonlin))
-        iters = 20000
+        iters = 1000
         for j in range(number_of_nets):
             x = (total_data[int(float(j)/number_of_nets*(len(total_data))):int(float((j+1))/number_of_nets*(len(total_data)))])
             nn_groups_data.append(x)
@@ -138,8 +140,8 @@ classAcc3 = [[0 for i in range(15)] for j in range(10)]
 number_of_nets = 10
 
 runs = [0,1,2,3,4,5,6]
-#single_run(0)
-pool.map(single_run,runs)
+single_run(0)
+#pool.map(single_run,runs)
 
 
 plt.xlabel("Number of batches [of size 50]")

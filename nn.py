@@ -108,7 +108,7 @@ def forward(nn, data):
     :return: the output layer activations
     """
 
-    nn['activations'] = [data.T]
+    nn['activations'] = [data]
 
     nn['zs'] = []
     for w, s, b in map(None, nn['weights'], nn['nonlin'], nn['biases']):
@@ -185,14 +185,13 @@ def master_node(nn,data,labels):
     minim = len(data[0])
     newData = data#np.fliplr(np.asarray(data))
     newLabel = labels#np.fliplr(np.asarray(labels))
-    print minim * len(nn)
     for i in range(minim):
       nabla_w = ["NULL"]*3
 
       nabla_b = ["NULL"]*3
       for n in range(len(nn)):
         r = forward(nn[n], data[n][i])
-        
+     
         delta = d_cost(r,labels[n][i])
         w,b = gradient(nn[n], delta)
 	#print len(w)

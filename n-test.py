@@ -199,6 +199,7 @@ for te in range(10):
         for s in range(number_of_nets):
             batches.append([x for x in iter_minibatches(2,groups_data[s].T, groups_label[s])])
         t = [x for x in iter_minibatches(2,groups_data[0].T, groups_label[0])]
+        print t[0]
         t2 = [x for x in iter_minibatches(2,groups_data[1].T, groups_label[1])]    
         t3 = [x for x in iter_minibatches(2,groups_data[2].T, groups_label[2])]
         t4 = [x for x in iter_minibatches(2,total_groups_data.T, total_groups_label)]

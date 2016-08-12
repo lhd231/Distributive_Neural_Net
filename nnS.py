@@ -60,6 +60,7 @@ def weight_matrix(seed, innum, outnum, type='glorot', layer=0):
     np.random.seed(seed)
     if type == 'glorot': W = np.random.uniform(low=-np.sqrt(6.0/(2*layer+1)), high=np.sqrt(6.0/(2*layer+1)), size=(outnum, innum))
     if type == 'normal': W = np.random.rand(outnum, innum)
+
     return W
 def addadadelta(nn):
     # need to add error checking if weights have been already initialized
@@ -104,7 +105,7 @@ def forward(nn, data):
     :param data: a numpy n by m matrix where m in the number of input units in nn
     :return: the output layer activations
     """
-    nn['activations'] = [data.T]
+    nn['activations'] = [data]
 
     nn['zs'] = []
     for w, s, b in map(None, nn['weights'], nn['nonlin'], nn['biases']):
