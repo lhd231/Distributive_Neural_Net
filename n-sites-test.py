@@ -29,7 +29,6 @@ def iter_minibatches(chunksize, data, labels):
 
 def visitbatches(nn, batches, labelBatches, errlist, it=1000):
     for c in range(it):
-	    print c
 	    #print "len of things " + str(len(nn)) + " " + str(len(batches[0]))
             nnDif.master_node(nn, batches, labelBatches)
             #err.append(r)
@@ -57,18 +56,16 @@ def single_run(te):
     data,validation_data,label,validation_label = train_test_split(data,label,train_size = .30)
         #separate the data set into buckets
 
-    total_data = data#list(group_list(data,1))
-    total_label = label#list(group_list(label,1))
+    total_data = list(group_list(data,1))
+    total_label = list(group_list(label,1))
     
     #The two separate site sets
 
     for s in range(10,150,10):
-	print s
 	nets = []
 	nn_groups_data = []
 	nn_groups_label = []
 	number_of_nets = s
-	print s
 	for x in range(number_of_nets):
             nets.append(nnDif.nn_build(1,[2,6,6,1],eta=eta,nonlin=nonlin))
         iters = 1000
@@ -77,10 +74,8 @@ def single_run(te):
             nn_groups_data.append(x)
     
             nn_groups_label.append(total_label[int(float(j)/number_of_nets*(len(total_label)/number_of_nets)):int(float((j+1))/number_of_nets*(len(total_label)))])
-	print "len of things " + str(len(nets)) + " " + str(len(nn_groups_data[0]))
 	start = time.time()
 	visitbatches(nets,nn_groups_data,nn_groups_label,[],it=iters)
-	print time.time() - start
 	one = accuracy(nets[0], validation_data, validation_label, thr=0.5)
 
 	nn1Acc[te][s/10] += one
