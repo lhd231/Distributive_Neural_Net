@@ -30,6 +30,7 @@ def iter_minibatches(chunksize, data, labels):
 def visitbatches(nn, batches, labelBatches, errlist, it=1000):
     for c in range(it):
 	    #print "len of things " + str(len(nn)) + " " + str(len(batches[0]))
+
             nnDif.master_node(nn, batches, labelBatches)
             #err.append(r)
 
@@ -47,18 +48,23 @@ def accuracyClassic(nn, data, label, thr = 0.5):
 
 def group_list(l, group_size):
     for i in xrange(0, len(l), group_size):
-        yield np.asarray(l[i:i+group_size]).T
+        yield l[i:i+group_size]
         
 def single_run(te):
     print te
-    data, label = make_moons(n_samples=1000, noise=0.05, shuffle=True, random_state = int(time.time()))
+    data, label = make_moons(n_samples=2000, noise=0.05, shuffle=True, random_state = int(time.time()))
         
     data,validation_data,label,validation_label = train_test_split(data,label,train_size = .30)
         #separate the data set into buckets
-
-    total_data = list(group_list(data,1))
-    total_label = list(group_list(label,1))
     
+    total_data = []
+    for item in data:#list(group_list(data,1))
+      total_data.append(np.array(np.matrix(item)))
+    
+    total_label = []
+    for item in label:#list(group_list(label,1))
+      
+      total_label.append(np.asarray(item))
     #The two separate site sets
 
     for s in range(10,150,10):
@@ -68,18 +74,23 @@ def single_run(te):
 	number_of_nets = s
 	for x in range(number_of_nets):
             nets.append(nnDif.nn_build(1,[2,6,6,1],eta=eta,nonlin=nonlin))
-        iters = 1000
+        iters = 100
         for j in range(number_of_nets):
+
             x = (total_data[int(float(j)/number_of_nets*(len(total_data))):int(float((j+1))/number_of_nets*(len(total_data)))])
             nn_groups_data.append(x)
-    
+            
+	 
             nn_groups_label.append(total_label[int(float(j)/number_of_nets*(len(total_label)/number_of_nets)):int(float((j+1))/number_of_nets*(len(total_label)))])
 	start = time.time()
 	visitbatches(nets,nn_groups_data,nn_groups_label,[],it=iters)
 	one = accuracy(nets[0], validation_data, validation_label, thr=0.5)
 
 	nn1Acc[te][s/10] += one
+	print "accuracy"
+	print one
         '''
+        
         number_of_nets = s
         nn_groups_data = []
         nn_groups_label = list()

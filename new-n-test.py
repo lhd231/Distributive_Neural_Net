@@ -165,11 +165,14 @@ def accuracy(nn, data, label, thr = 0.5):
     for pnt in data:
       plotArrX.append(pnt[0])
       plotArrY.append(pnt[1])
-  
+    
  
     return 100 * np.double(len(np.where(np.asarray(predict)==False)[0]))/np.double(len(predict))
 def accuracyClassic(nn, data, label, thr = 0.5):
-    predict  = [ np.int8(nnS.forward(nn,data[c,:]) > thr) == label[c] for c in range(data.shape[0])]
+    predict  = [ np.int8(nnS.forward(nn,data[c,:].T) > thr) == label[c].T for c in range(data.shape[0])]
+    print "data shape"
+    print data.shape[0]
+    print data.shape[1]
     return 100 * np.double(len(np.where(np.asarray(predict)==False)[0]))/np.double(len(predict))
 
 def group_list(l, group_size):
@@ -220,7 +223,7 @@ def sing_run(te):
     print len(totlistX)
 
 
-    plt.scatter(totlistX,totlistY,c=total_label[2])
+    #plt.scatter(totlistX,totlistY,c=total_label[2])
     #+total_label[1]+total_label[2]
     #plt.show()
     #random.shuffle(total_label[2])
@@ -276,10 +279,10 @@ def sing_run(te):
 	#plt.scatter(totlistX,totlistY,c=total_label[0][:i]+total_label[1][:i]+total_label[2][:i])
 	#plt.show()
 	#TODO:  Here, we need to rewrite the function so it 
-        groups_data = list()
-        groups_label = list()
-        nets = list()
-        batches = list()
+        groups_data = []
+        groups_label = []
+        nets = []
+        batches = []
         #nnClassic1 = nnS.nn_build(1,[2,6,6,1],eta=eta,nonlin=nonlin)
         #nnClassic2 = nnS.nn_build(1,[2,6,6,1],eta=eta,nonlin=nonlin)
         for x in range(number_of_nets):
@@ -315,19 +318,19 @@ def sing_run(te):
         #visitbatches(nets, batches, err, it=iters)
 	#print "finish classics"
         #differential_groups = differential_groups + dif_group_data[3*i] +dif_group_data[3*i + 1] + dif_group_data[3*i + 2]
-	batchesData1,batchesLabel1 = [x for x in iter_minibatches(2,total_data[0],total_label[0])]
-       	batchesData2,batchesLabel2 = [x for x in iter_minibatches(2,total_data[1],total_label[1])]
-	batchesData3,batchesLabel3 = [x for x in iter_minibatches(2,total_data[2],total_label[2])]
+	batchesData1,batchesLabel1 = [x for x in iter_minibatches(1,total_data[0],total_label[0])]
+       	batchesData2,batchesLabel2 = [x for x in iter_minibatches(1,total_data[1],total_label[1])]
+	batchesData3,batchesLabel3 = [x for x in iter_minibatches(1,total_data[2],total_label[2])]
 	nnTogetherClassic = nnS.nn_build(1,[2,6,6,1],eta=eta,nonlin=nonlin)
 	classicWing = nnS.nn_build(1,[2,6,6,1],eta=eta,nonlin=nonlin)
 	classicWing2 = nnS.nn_build(1,[2,6,6,1],eta=eta,nonlin=nonlin)
 	classicLeft = nnS.nn_build(1,[2,6,6,1],eta=eta,nonlin=nonlin)
 	nnTogetherDif = nnDif.nn_build(1,[2,6,6,1],eta=eta,nonlin=nonlin)
 	print "LENGTH:   " +str(len(batchesData1[:i]))
-#	visitClassicBatches(classicWing,batchesData2[:i],batchesLabel2[:i],it=iters)
+	visitClassicBatches(classicWing,batchesData2[:i],batchesLabel2[:i],it=iters)
 	#visitClassicBatches(classicWing2,batchesData2[:i],batchesLabel2[:i],it=iters)
-#	visitClassicBatches(classicLeft,batchesData1[:i],batchesLabel1[:i],it=iters)
-#	visitClassicBatches(nnTogetherClassic,batchesData1[:i]+batchesData2[:i]+batchesData3[:i],batchesLabel1[:i]+batchesLabel2[:i]+batchesLabel3[:i],it=iters)
+	visitClassicBatches(classicLeft,batchesData1[:i],batchesLabel1[:i],it=iters)
+	visitClassicBatches(nnTogetherClassic,batchesData1[:i]+batchesData2[:i]+batchesData3[:i],batchesLabel1[:i]+batchesLabel2[:i]+batchesLabel3[:i],it=iters)
 	#visitClassicBatches(nnClassic1,batchesData1[:i],batchesLabel1[:i], it=iters)
 	#visitClassicBatches(nnClassic2,batchesData2[:i],batchesLabel2[:i], it=iters)
 	#visitClassicBatches(nnClassic3,batchesData3[:i],batchesLabel3[:i], it=iters)
@@ -357,7 +360,7 @@ def sing_run(te):
 	#    plotlistColor.append(tup[0])
 	#    plotlistColor.append(tup[0])
 
-	plt.scatter(plotlistX,plotlistY,c=plotlistColor)
+	#plt.scatter(plotlistX,plotlistY,c=plotlistColor)
 	     #+batchesLabel2[:i]+batchesLabel3[:i])
 	
 	#plt.show()
@@ -366,8 +369,7 @@ def sing_run(te):
         #visitbatches(nets, [nn1_groups_data[:i],nn2_groups_data[:i],nn3_groups_data[:i]], [nn1_groups_label[:i],nn2_groups_label[:i],nn3_groups_label[:i]], err, it=iters)
 	batchesList = [batchesData1[:i],batchesData2[:i],batchesData3[:i]]
 	labelList = [batchesLabel1[:i],batchesLabel2[:i],batchesLabel3[:i]]
-	print [batchesLabel1[:i],batchesLabel2[:i],batchesLabel3[:i]][0]
-	exit(0)
+
 	visitbatches(nets, [batchesData1[:i],batchesData2[:i],batchesData3[:i]], [batchesLabel1[:i],batchesLabel2[:i],batchesLabel3[:i]], err, it=iters)
         batches2 = [batchesData1[:i]+batchesData2[:i]+batchesData3[:i]]
 	list2 = [batchesLabel1[:i]+batchesLabel2[:i]+batchesLabel3[:i]]
@@ -408,8 +410,8 @@ def sing_run(te):
 
         #print "us " + str(one) + " c1 " + str(classic) + " c2 " + str(classic2) + " cc " + str(classic3)
 nat = range(10)
-sing_run(0)
-#pool.map(sing_run,nat)
+#sing_run(0)
+pool.map(sing_run,nat)
 #nn1Acc[:] = [x / 10 for x in nn1Acc]
 #classAcc1[:] = [x / 10 for x in classAcc1]
 #classAcc2[:] = [x / 10 for x in classAcc2]
