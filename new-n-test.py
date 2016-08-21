@@ -410,8 +410,8 @@ def sing_run(te):
 
         #print "us " + str(one) + " c1 " + str(classic) + " c2 " + str(classic2) + " cc " + str(classic3)
 nat = range(10)
-#sing_run(0)
-pool.map(sing_run,nat)
+sing_run(0)
+#pool.map(sing_run,nat)
 #nn1Acc[:] = [x / 10 for x in nn1Acc]
 #classAcc1[:] = [x / 10 for x in classAcc1]
 #classAcc2[:] = [x / 10 for x in classAcc2]

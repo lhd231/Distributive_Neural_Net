@@ -133,7 +133,7 @@ def average_gradient(deltas, activations):
     dW = 0
     for i in range(deltas.shape[1]):
         dW += np.outer(deltas[:,i], activations[:,i].T)
-    return dW#/deltas.shape[1]
+    return dW/deltas.shape[1]
 
 def backprop(nn, delta):
     eta = nn['eta']
