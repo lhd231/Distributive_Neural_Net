@@ -34,10 +34,10 @@ def visitbatches(nn, batches, labelBatches, errlist, it=1000):
             nnDif.master_node(nn, batches, labelBatches)
             #err.append(r)
 
-def visitClassicBatches(nn,data, it=1000):
+def visitClassicBatches(nn,data,labels, it=1000):
     for c in range(it):
-        cc = np.mod(c,len(data));
-        nnS.minibatch_fit(nn, data[cc][0], data[cc][1])
+        for cc in range(len(data)):
+	  nnS.minibatch_fit(nn, data[cc], labels[cc])
 
 def accuracy(nn, data, label, thr = 0.5):
     predict  = [ np.int8(nnDif.forward(nn,data[c,:]) > thr) == label[c] for c in range(data.shape[0])]
@@ -83,7 +83,15 @@ def single_run(te):
 	 
             nn_groups_label.append(total_label[int(float(j)/number_of_nets*(len(total_label)/number_of_nets)):int(float((j+1))/number_of_nets*(len(total_label)))])
 	start = time.time()
-	visitbatches(nets,nn_groups_data,nn_groups_label,[],it=iters)
+	mixed_group_data = []
+	mixed_group_label = []
+	for se in range(len(nn_groups_data)):
+	  for see in range(len(nn_groups_data[1])):
+	    mixed_group_data.append(nn_groups_data[se][see])
+	    mixed_group_label.append(nn_groups_label[se][see])
+	
+	#visitbatches(nets,nn_groups_data,nn_groups_label,[],it=iters)
+	visitClassicBatches(nets[0],mixed_group_data,mixed_group_label,it=iters)
 	one = accuracy(nets[0], validation_data, validation_label, thr=0.5)
 
 	nn1Acc[te][s/10] += one
