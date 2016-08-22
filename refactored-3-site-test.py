@@ -113,7 +113,8 @@ def iter_minibatches(chunksize, data, labels):
         Y_chunk.append(np.asarray(labels[chunkstartmarker:chunkstartmarker+chunksize]))
   
         chunkstartmarker += chunksize
-    return X_chunk, Y_chunk
+    print type(X_chunk)
+    return np.asarray(X_chunk), np.asarray(Y_chunk)
 
 
 def visitbatches(nn, batches, labels, it=1000):
@@ -128,20 +129,17 @@ def visitClassicBatches(nn,data,labels, it=1000):
 
 def accuracy(nn, data, label, thr = 0.5):
     predict  = [ np.int8(nnDif.forward(nn,data[c,:]) > thr) == label[c] for c in range(data.shape[0])]
-    plotArrX = []
-    plotArrY = []
-    for pnt in data:
-      plotArrX.append(pnt[0])
-      plotArrY.append(pnt[1])
+    #plotArrX = []
+    #plotArrY = []
+    #for pnt in data:
+      #plotArrX.append(pnt[0])
+      #plotArrY.append(pnt[1])
     #plt.scatter(plotArrX,plotArrY,c=predict)
     #plt.show()
     return 100 * np.double(len(np.where(np.asarray(predict)==False)[0]))/np.double(len(predict))
 
 
-def group_list(l, group_size):
-    for i in xrange(0, len(l), group_size):
-        yield np.asarray(l[i:i+group_size]).T
-        
+    
         
 nn1Acc = [[0 for i in range(50)] for j in range(10)]
 classAcc1 = [[0 for i in range(50)] for j in range(10)]
@@ -152,9 +150,9 @@ number_of_nets = 3
 
 def sing_run(te):
     print te
-    data, label = make_moons(n_samples=2000, shuffle=True, noise=0.1,random_state = int(time.time()))
+    data, label = make_moons(n_samples=1000, shuffle=True, noise=0.1,random_state = int(time.time()))
     
-    data,validation_data,label,validation_label = train_test_split(data,label,train_size = .38)
+    data,validation_data,label,validation_label = train_test_split(data,label,train_size = .20)
         #separate the data set into buckets
  
     total_data, total_label,A,B = split(data,label)
@@ -192,47 +190,47 @@ def sing_run(te):
         groups_label = []
         nets = []
         batches = []
-	plotlistX = []
-	plotlistY = []
-	plotlistColor = []
-	for batch in total_data[0][:i]:
+	#plotlistX = []
+	#plotlistY = []
+	#plotlistColor = []
+	#for batch in total_data[0][:i]:
 
-	      plotlistX.append(batch[0])
-	      plotlistY.append(batch[1])
-	for batch in total_data[1][:i]:
+	 #     plotlistX.append(batch[0])
+	 #     plotlistY.append(batch[1])
+	#for batch in total_data[1][:i]:
 	 
 	
-	      plotlistX.append(batch[0])
-	      plotlistY.append(batch[1])
-	for batch in total_data[2][:i]:
+	 #     plotlistX.append(batch[0])
+	 #     plotlistY.append(batch[1])
+	#for batch in total_data[2][:i]:
 	
-	    x = 2
-	    plotlistX.append(batch[0])
-	    plotlistY.append(batch[1])
-	for arr in total_label[0][:i]:
+	 #   x = 2
+	 #   plotlistX.append(batch[0])
+	 #   plotlistY.append(batch[1])
+	#for arr in total_label[0][:i]:
 	  
-	    plotlistColor.append([arr,arr,arr])
-	for arr in total_label[1][:i]:
+	 #   plotlistColor.append([arr,arr,arr])
+	#for arr in total_label[1][:i]:
 	  
-	    plotlistColor.append([arr,arr,arr])
-	for arr in total_label[2][:i]:
+	 #   plotlistColor.append([arr,arr,arr])
+	#for arr in total_label[2][:i]:
 	
-	    plotlistColor.append([arr,arr,arr])
+	 #   plotlistColor.append([arr,arr,arr])
 	#print "gogo"
 	#plt.ylabel("Error rate")
 	#plt.xlabel("Group size (3 groups per decentralized line")
 	#plt.scatter(plotlistX,plotlistY,c=plotlistColor)
 	#plt.show()
 	
+	#The neural nets for each plot
         nnTogetherClassic = nnS.nn_build(1,[2,6,6,1],eta=eta,nonlin=nonlin)
         nnHorn1 = nnS.nn_build(1,[2,6,6,1],eta=eta,nonlin=nonlin)
         nnHorn2 = nnS.nn_build(1,[2,6,6,1],eta=eta,nonlin=nonlin)
         nnMiddle = nnS.nn_build(1,[2,6,6,1],eta=eta,nonlin=nonlin)
-        for x in range(number_of_nets):
-            nets.append(nnDif.nn_build(1,[2,6,6,1],eta=eta,nonlin=nonlin))
+        nnDecent = nnS.nn_build(1,[2,6,6,1],eta=eta,nonlin=nonlin)
+        
 
-
-        iters = 700
+        iters = 10000
         new_total_data = []
         new_total_label = []
         for x in range(i):
@@ -247,36 +245,38 @@ def sing_run(te):
 	batchesData3,batchesLabel3 = [x for x in iter_minibatches(1,total_data[2],total_label[2])]
 	
 	batches_decent_data, batches_decent_label = [x for x in iter_minibatches(3,new_total_data,new_total_label)]
-	visitClassicBatches(nets[0],batches_decent_data,batches_decent_label, it=iters)
-	#print "finished decent"
+	visitClassicBatches(nnDecent,batches_decent_data,batches_decent_label, it=iters)
+
 	visitClassicBatches(nnTogetherClassic,batchesData1[:i]+batchesData2[:i]+batchesData3[:i],batchesLabel1[:i]+batchesLabel2[:i]+batchesLabel3[:i],it=iters)
-	visitClassicBatches(nnHorn1,batchesData1[:i],batchesLabel1[:i],it=iters)
-	visitClassicBatches(nnHorn2,batchesData3[:i],batchesLabel3[:i],it=iters)
-	visitClassicBatches(nnMiddle,batchesData2[:i],batchesLabel2[:i],it=iters)
-	#visitbatches(nets, [batchesData1[:i],batchesData2[:i],batchesData3[:i]], [batchesLabel1[:i],batchesLabel2[:i],batchesLabel3[:i]], it=iters)
+	#visitClassicBatches(nnHorn1,batchesData1[:i],batchesLabel1[:i],it=iters)
+	#visitClassicBatches(nnHorn2,batchesData3[:i],batchesLabel3[:i],it=iters)
+	#visitClassicBatches(nnMiddle,batchesData2[:i],batchesLabel2[:i],it=iters)
 
         togetherAcc = accuracy(nnTogetherClassic,validation_data,validation_label,thr=.05)
         
         
-        one = accuracy(nets[0], validation_data, validation_label, thr=0.5)
+        one = accuracy(nnDecent, validation_data, validation_label, thr=0.5)
 	oneAcc = accuracy(nnHorn1, validation_data, validation_label, thr=0.5)
 	twoAcc = accuracy(nnHorn2, validation_data, validation_label, thr=0.5)
-	midAcc = accuracy(nnHorn2, validation_data, validation_label, thr=0.5)
-        nn1Acc[te][i/10] = one
+	midAcc = accuracy(nnMiddle, validation_data, validation_label, thr=0.5)
+        
+        
+        
 	print "accuracies"
 	print one
-        classAcc1[te][i/10] = togetherAcc
 	print togetherAcc
 	print oneAcc
 	print twoAcc
 	print midAcc
 
+	nn1Acc[te][i/10] = one
+	classAcc1[te][i/10] = togetherAcc
 	horn1Acc[te][i/10] = oneAcc
 	horn2Acc[te][i/10] = twoAcc
 	middleAcc[te][i/10] = midAcc
 nat = range(10)
-#sing_run(0)
-pool.map(sing_run,nat)
+sing_run(0)
+#pool.map(sing_run,nat)
 
 np.savetxt("3-site-decent-2.txt",nn1Acc)
 np.savetxt("3-site-cent-2.txt",classAcc1)
