@@ -364,13 +364,22 @@ def sing_run(te):
 	     #+batchesLabel2[:i]+batchesLabel3[:i])
 	
 	#plt.show()
-	
+	new_total_data = []
+	new_total_label = []
+	for x in range(i):
+	  for se in range len(nets):
+	    new_total_data.append(total_data[0][x])
+	    new_total_data.append(total_data[1][x])
+	    new_total_data.append(total_data[2][x])
+	    new_total_label.append(total_label[0][x])
+	    new_total_label.append(total_label[1][x])
+	    new_total_label.append(total_label[2][x])
         #differential_labels = differential_labels + dif_group_label[3*i] + dif_group_label[3*i + 1] + dif_group_label[3*i + 2]
         #visitbatches(nets, [nn1_groups_data[:i],nn2_groups_data[:i],nn3_groups_data[:i]], [nn1_groups_label[:i],nn2_groups_label[:i],nn3_groups_label[:i]], err, it=iters)
 	batchesList = [batchesData1[:i],batchesData2[:i],batchesData3[:i]]
 	labelList = [batchesLabel1[:i],batchesLabel2[:i],batchesLabel3[:i]]
 
-	visitbatches(nets, [batchesData1[:i],batchesData2[:i],batchesData3[:i]], [batchesLabel1[:i],batchesLabel2[:i],batchesLabel3[:i]], err, it=iters)
+	visitClassicBatches(nets[0], [batchesData1[:i],batchesData2[:i],batchesData3[:i]], [batchesLabel1[:i],batchesLabel2[:i],batchesLabel3[:i]], err, it=iters)
         batches2 = [batchesData1[:i]+batchesData2[:i]+batchesData3[:i]]
 	list2 = [batchesLabel1[:i]+batchesLabel2[:i]+batchesLabel3[:i]]
 

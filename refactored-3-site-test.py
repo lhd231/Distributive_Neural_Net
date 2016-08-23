@@ -42,10 +42,7 @@ def split(data, label):
   green2Label = list()
   red1Label = list()
   red2Label = list()
-  dif1 = list()
-  dif2 = list()
-  dif1Label = list()
-  dif2Label = list()
+
   max = 0
   i = 0
   for x,y in zip(data,label):
@@ -81,10 +78,8 @@ def split(data, label):
       red2Label.append(y)
 
     i += 1
-  return_list_data = list()
-  return_list_label = list()
-  return_dif_data = list()
-  return_dif_label = list()
+  return_list_data = []
+  return_list_label = []
   minim = min([len(brown1),len(brown2),len(red1),len(red2),len(green1),len(green2)])
   return_list_data.append(brown1[:minim] + brown2[:minim]) 
   return_list_data.append(green1[:minim] + green2[:minim]) 
@@ -92,19 +87,45 @@ def split(data, label):
   return_list_label.append(brown1Label[:minim] + brown2Label[:minim]) 
   return_list_label.append(green1Label[:minim] + green2Label[:minim])
   return_list_label.append(red1Label[:minim] + red2Label[:minim])
-  return_dif_data.append(dif1 + dif2)
-  return_dif_label.append(dif1Label + dif2Label)
-  rads = brown1[:minim] + brown2[:minim]
-  list1, list2 = zip(*rads)
-  return return_list_data, return_list_label, return_dif_data, return_dif_label
 
+  return return_list_data, return_list_label
 
-
+#Organizes our data to make handling easier and chunks based on current position in the
+#data
+def organize_data(total_data,total_label,i):
+    new_total_data = []
+    new_total_label = []
+    for x in range(i-10,i):
+      new_total_data.append(total_data[0][x])
+      new_total_data.append(total_data[1][x])
+      new_total_data.append(total_data[2][x])
+      new_total_label.append(total_label[0][x])
+      new_total_label.append(total_label[1][x])
+      new_total_label.append(total_label[2][x])
+    
+    return new_total_data, new_total_label
+  
+  
+def randomize(total_data,total_label,seed):
+    random.seed(seed)
+    random.shuffle(total_data[0])
+    random.seed(seed)
+    random.shuffle(total_data[1])
+    random.seed(seed)
+    random.shuffle(total_data[2])
+    random.seed(seed)
+    random.shuffle(total_label[0])
+    random.seed(seed)
+    random.shuffle(total_label[1])
+    random.seed(seed)
+    random.shuffle(total_label[2])
+    return total_data, total_label
 #adagrad and adadelta  esp adadelta
 def iter_minibatches(chunksize, data, labels):
     # Provide chunks one by one
     chunkstartmarker = 0
     numsamples = len(data)
+
     X_chunk = []
     Y_chunk = []
     while chunkstartmarker < numsamples:
@@ -113,8 +134,8 @@ def iter_minibatches(chunksize, data, labels):
         Y_chunk.append(np.asarray(labels[chunkstartmarker:chunkstartmarker+chunksize]))
   
         chunkstartmarker += chunksize
-    print type(X_chunk)
-    return np.asarray(X_chunk), np.asarray(Y_chunk)
+
+    return X_chunk, Y_chunk
 
 
 def visitbatches(nn, batches, labels, it=1000):
@@ -129,129 +150,73 @@ def visitClassicBatches(nn,data,labels, it=1000):
 
 def accuracy(nn, data, label, thr = 0.5):
     predict  = [ np.int8(nnDif.forward(nn,data[c,:]) > thr) == label[c] for c in range(data.shape[0])]
-    #plotArrX = []
-    #plotArrY = []
-    #for pnt in data:
-      #plotArrX.append(pnt[0])
-      #plotArrY.append(pnt[1])
-    #plt.scatter(plotArrX,plotArrY,c=predict)
-    #plt.show()
+
     return 100 * np.double(len(np.where(np.asarray(predict)==False)[0]))/np.double(len(predict))
 
 
     
-        
+#Our list of accuracies.  And the number of nets (or number of sites)        
 nn1Acc = [[0 for i in range(50)] for j in range(10)]
 classAcc1 = [[0 for i in range(50)] for j in range(10)]
 horn1Acc = [[0 for i in range(50)] for j in range(10)]
 horn2Acc = [[0 for i in range(50)] for j in range(10)]
 middleAcc = [[0 for i in range(50)] for j in range(10)]
-number_of_nets = 3
+number_of_sites = 3
 
 def sing_run(te):
     print te
-    data, label = make_moons(n_samples=1000, shuffle=True, noise=0.1,random_state = int(time.time()))
+    data, label = make_moons(n_samples=2000, shuffle=True, noise=0.1,random_state = int(time.time()))
     
     data,validation_data,label,validation_label = train_test_split(data,label,train_size = .20)
-        #separate the data set into buckets
- 
-    total_data, total_label,A,B = split(data,label)
-   
-    random.seed(4)
-    random.shuffle(total_data[0])
-    random.seed(4)
-    random.shuffle(total_data[1])
-    random.seed(4)
-    random.shuffle(total_data[2])
-    random.seed(4)
-    random.shuffle(total_label[0])
-    random.seed(4)
-    random.shuffle(total_label[1])
-    random.seed(4)
-    random.shuffle(total_label[2])
-
-
-   
+    
+    #Here, we a list of three lists for each piece of the "moon"
+    total_data, total_label = split(data,label)
+    
+    total_data, total_label = randomize(total_data,total_label,4)
 
     #find the minimum between the three sides.
     minim = min(min(len(total_data[0]),len(total_data[1])),len(total_data[2]))
 
     
-    nets = list()  #Our differential networks
 
 
-
+    #Our five neural networks
+    nnTogetherClassic = nnS.nn_build(1,[2,6,6,1],eta=eta,nonlin=nonlin)
+    nnHorn1 = nnS.nn_build(1,[2,6,6,1],eta=eta,nonlin=nonlin)
+    nnHorn2 = nnS.nn_build(1,[2,6,6,1],eta=eta,nonlin=nonlin)
+    nnMiddle = nnS.nn_build(1,[2,6,6,1],eta=eta,nonlin=nonlin)
+    nnDecent = nnS.nn_build(1,[2,6,6,1],eta=eta,nonlin=nonlin)
 
   
-
+ 
     for i in range(10,minim - minim%10,10):#
 
         groups_data = []
         groups_label = []
         nets = []
         batches = []
-	#plotlistX = []
-	#plotlistY = []
-	#plotlistColor = []
-	#for batch in total_data[0][:i]:
 
-	 #     plotlistX.append(batch[0])
-	 #     plotlistY.append(batch[1])
-	#for batch in total_data[1][:i]:
-	 
-	
-	 #     plotlistX.append(batch[0])
-	 #     plotlistY.append(batch[1])
-	#for batch in total_data[2][:i]:
-	
-	 #   x = 2
-	 #   plotlistX.append(batch[0])
-	 #   plotlistY.append(batch[1])
-	#for arr in total_label[0][:i]:
-	  
-	 #   plotlistColor.append([arr,arr,arr])
-	#for arr in total_label[1][:i]:
-	  
-	 #   plotlistColor.append([arr,arr,arr])
-	#for arr in total_label[2][:i]:
-	
-	 #   plotlistColor.append([arr,arr,arr])
-	#print "gogo"
-	#plt.ylabel("Error rate")
-	#plt.xlabel("Group size (3 groups per decentralized line")
-	#plt.scatter(plotlistX,plotlistY,c=plotlistColor)
-	#plt.show()
-	
-	#The neural nets for each plot
-        nnTogetherClassic = nnS.nn_build(1,[2,6,6,1],eta=eta,nonlin=nonlin)
-        nnHorn1 = nnS.nn_build(1,[2,6,6,1],eta=eta,nonlin=nonlin)
-        nnHorn2 = nnS.nn_build(1,[2,6,6,1],eta=eta,nonlin=nonlin)
-        nnMiddle = nnS.nn_build(1,[2,6,6,1],eta=eta,nonlin=nonlin)
-        nnDecent = nnS.nn_build(1,[2,6,6,1],eta=eta,nonlin=nonlin)
         
 
-        iters = 10000
+        iters = 4000
         new_total_data = []
         new_total_label = []
-        for x in range(i):
-	  new_total_data.append(total_data[0][x])
-	  new_total_data.append(total_data[1][x])
-	  new_total_data.append(total_data[2][x])
-	  new_total_label.append(total_label[0][x])
-	  new_total_label.append(total_label[1][x])
-	  new_total_label.append(total_label[2][x])
-        batchesData1,batchesLabel1 = [x for x in iter_minibatches(1,total_data[0],total_label[0])]
-       	batchesData2,batchesLabel2 = [x for x in iter_minibatches(1,total_data[1],total_label[1])]
-	batchesData3,batchesLabel3 = [x for x in iter_minibatches(1,total_data[2],total_label[2])]
-	
+        new_total_data,new_total_label = organize_data(total_data, total_label,i)
+
+        batchesData1,batchesLabel1 = [x for x in iter_minibatches(1,new_total_data,new_total_label)]
+
 	batches_decent_data, batches_decent_label = [x for x in iter_minibatches(3,new_total_data,new_total_label)]
+	
+
+
 	visitClassicBatches(nnDecent,batches_decent_data,batches_decent_label, it=iters)
-
-	visitClassicBatches(nnTogetherClassic,batchesData1[:i]+batchesData2[:i]+batchesData3[:i],batchesLabel1[:i]+batchesLabel2[:i]+batchesLabel3[:i],it=iters)
-	#visitClassicBatches(nnHorn1,batchesData1[:i],batchesLabel1[:i],it=iters)
-	#visitClassicBatches(nnHorn2,batchesData3[:i],batchesLabel3[:i],it=iters)
-	#visitClassicBatches(nnMiddle,batchesData2[:i],batchesLabel2[:i],it=iters)
-
+	print "finished decent"
+	visitClassicBatches(nnTogetherClassic,batchesData1,batchesLabel1,it=iters)
+	print "finished full cent"
+	visitClassicBatches(nnHorn1,batchesData1[:10],batchesLabel1[:10],it=iters)
+	visitClassicBatches(nnHorn2,batchesData1[20:30],batchesLabel1[20:30],it=iters)
+	visitClassicBatches(nnMiddle,batchesData1[10:20],batchesLabel1[10:20],it=iters)
+	print "finished 3 sites"
         togetherAcc = accuracy(nnTogetherClassic,validation_data,validation_label,thr=.05)
         
         
@@ -275,8 +240,8 @@ def sing_run(te):
 	horn2Acc[te][i/10] = twoAcc
 	middleAcc[te][i/10] = midAcc
 nat = range(10)
-sing_run(0)
-#pool.map(sing_run,nat)
+#sing_run(0)
+pool.map(sing_run,nat)
 
 np.savetxt("3-site-decent-2.txt",nn1Acc)
 np.savetxt("3-site-cent-2.txt",classAcc1)

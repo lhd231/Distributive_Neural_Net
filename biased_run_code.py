@@ -40,15 +40,21 @@ def bias(data, label, bias):
 
 
 #adagrad and adadelta  esp adadelta
-def iter_minibatches(chunksize, data):
+def iter_minibatches(chunksize, data, labels):
     # Provide chunks one by one
     chunkstartmarker = 0
-    numsamples = data.shape[1]
+    numsamples = len(data)
+
+    X_chunk = []
+    Y_chunk = []
     while chunkstartmarker < numsamples:
         chunkrows = range(chunkstartmarker,chunkstartmarker+chunksize)
-        X_chunk = data[:,chunkrows]
-        yield X_chunk
+        X_chunk.append(np.asarray(data[chunkstartmarker:chunkstartmarker+chunksize]))
+        Y_chunk.append(np.asarray(labels[chunkstartmarker:chunkstartmarker+chunksize]))
+  
         chunkstartmarker += chunksize
+
+    return X_chunk, Y_chunk
 
 
 def visitbatches(nn, batches, labels, errlist, it=1000):
@@ -61,10 +67,10 @@ def visitbatches(nn, batches, labels, errlist, it=1000):
            # nnDif.master_node(nn, batch[cc][0], batch[cc][1])
             #err.append(r)
 
-def visitClassicBatches(nn,data, it=1000):
+def visitClassicBatches(nn,data, labels, it=1000):
     for c in range(it):
-        cc = np.mod(c,len(data));
-        nnS.minibatch_fit(nn, data[cc][0], data[cc][1])
+        for cc in range(len(data)):
+	  nnS.minibatch_fit(nn, data[cc], labels[cc])
 
 def accuracy(nn, data, label, thr = 0.5):
     predict  = [ np.int8(nnDif.forward(nn,data[c,:]) > thr) == label[c] for c in range(data.shape[0])]
@@ -95,10 +101,9 @@ def sing_run(counts):
 
 	nData, nLabel = (bias(data,label,b))
 
-	total_data = list(group_list(nData,1))
-	print "TOTAL DATA"
+	total_data = nData
 	
-	total_label = list(group_list(nLabel,1))
+	total_label = nLabel#list(group_list(nLabel,1))
 
         number_of_nets = counts[1]
 	
@@ -138,27 +143,23 @@ def sing_run(counts):
             nets.append(nnDif.nn_build(1,[2,6,6,1],eta=eta,nonlin=nonlin))
 
 
-        for k in range(number_of_nets):
-             groups_data.append(np.asarray([item for sublist in nn_groups_data[k] for item in sublist]))        
-             groups_label.append(np.asarray([item for sublist in nn_groups_label[k] for item in sublist]))
-             total_groups_data = np.asarray([item for sublist in groups_data for item in sublist])
-             total_groups_label =  np.asarray([item for sublist in groups_label for item in sublist])
-             #Our classic combined nn    
-             nnClassic3 = nnS.nn_build(1,[2,6,6,1],eta=eta,nonlin=nonlin)
-	    
-        for ncount in range(number_of_nets):
-	  batches.append(groups_data[ncount])
-	  labelBatches.append(groups_label[ncount])
+	groups_data = []
+	groups_label = []
+	for ke in range(0,len(nn_groups_data[0])):
+	  for k in range(0,number_of_nets):
+	    groups_data.append((nn_groups_data[k][ke].T))
+	    groups_label.append(nn_groups_label[k][ke])
+
             #t = [x for x in iter_minibatches(2,total_groups_data.T, total_groups_label)]
             #t3 = [x for x in iter_minibatches(2,total_groups_data.T, total_groups_label)]
 	err = []
             #Run the batches through the algos
-	iters = 10000
+	iters = 1000
             #visitClassicBatches(nnClassic1,t, it=iters)
             #visitClassicBatches(nnClassic3,t3, it=iters)
 	start = time.time()
-
-	visitbatches(nets, nn_groups_data, nn_groups_label, err, it=iters)
+	batches_data,batches_label = [x for x in iter_minibatches(number_of_nets,groups_data, groups_label)]
+	visitClassicBatches(nets[0], batches_data, batches_label, it=iters)
         print time.time() - start
             #calculate error
             #classic = accuracyClassic(nnClassic1,validation_data,validation_label, thr=0.5)
@@ -187,7 +188,7 @@ def batch_run(s):
     nat = range(10)
     siteNumbers = [s] * 10
     #TODO:  Set this guy to an array. 2, 10, 100
-    #pool.map(sing_run,zip(nat,siteNumbers))
+    pool.map(sing_run,zip(nat,siteNumbers))
     sing_run(zip(nat,siteNumbers)[0])
       
 nn1Acc = [[[0 for k in range(11)] for i in range(10)] for j in range(3)]
