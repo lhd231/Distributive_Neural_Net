@@ -19,13 +19,16 @@ pool = ThreadPool(6)
 def iter_minibatches(chunksize, data, labels):
     # Provide chunks one by one
     chunkstartmarker = 0
-    numsamples = data.shape[1]
+    numsamples = len(data)
+    X_chunk = []
+    Y_chunk = []
     while chunkstartmarker < numsamples:
         chunkrows = range(chunkstartmarker,chunkstartmarker+chunksize)
-        X_chunk, y_chunk = data[:,chunkrows], labels[chunkrows]
-        yield X_chunk, y_chunk
+        X_chunk.append(np.asarray(data[chunkstartmarker:chunkstartmarker+chunksize]))
+        Y_chunk.append(np.asarray(labels[chunkstartmarker:chunkstartmarker+chunksize]))
         chunkstartmarker += chunksize
-
+    
+    return np.asarray(X_chunk), np.asarray(Y_chunk)
 
 def visitbatches(nn, batches, labelBatches, errlist, it=1000):
     for c in range(it):
@@ -52,9 +55,9 @@ def group_list(l, group_size):
         
 def single_run(te):
     print te
-    data, label = make_moons(n_samples=2000, noise=0.05, shuffle=True, random_state = int(time.time()))
+    data, label = make_moons(n_samples=3000, noise=0.05, shuffle=True, random_state = int(time.time()))
         
-    data,validation_data,label,validation_label = train_test_split(data,label,train_size = .30)
+    data,validation_data,label,validation_label = train_test_split(data,label,train_size = .10)
         #separate the data set into buckets
     
     total_data = []
@@ -66,30 +69,39 @@ def single_run(te):
       
       total_label.append(np.asarray(item))
     #The two separate site sets
-
-    for s in range(10,150,10):
+    sites_numbers = [2,5,10,15,20,50,60,75,100,150]
+    for s in range(len(sites_numbers)):
 	nets = []
 	nn_groups_data = []
 	nn_groups_label = []
-	number_of_nets = s
+	number_of_nets = sites_numbers[s]
 	for x in range(number_of_nets):
             nets.append(nnDif.nn_build(1,[2,6,6,1],eta=eta,nonlin=nonlin))
-        iters = 100
+        iters = 1200
+        group_size = len(total_data) / number_of_nets
         for j in range(number_of_nets):
-
-            x = (total_data[int(float(j)/number_of_nets*(len(total_data))):int(float((j+1))/number_of_nets*(len(total_data)))])
+	    
+            x = (total_data[int(float(j)*group_size):int(float((j+1))*group_size)])
             nn_groups_data.append(x)
-            
-	 
-            nn_groups_label.append(total_label[int(float(j)/number_of_nets*(len(total_label)/number_of_nets)):int(float((j+1))/number_of_nets*(len(total_label)))])
+
+            nn_groups_label.append(total_label[int(float(j)*group_size):int(float((j+1))*group_size)])
 	start = time.time()
 	mixed_group_data = []
 	mixed_group_label = []
-	for se in range(len(nn_groups_data)):
-	  for see in range(len(nn_groups_data[1])):
-	    mixed_group_data.append(nn_groups_data[se][see])
-	    mixed_group_label.append(nn_groups_label[se][see])
+	minim = len(nn_groups_data[0])
 	
+	for ms in range(len(nn_groups_data)):
+	  
+	  minim = min(minim,len(nn_groups_data[ms]))
+	print "here is size of data: "+str(minim*len(nn_groups_data))
+	for se in range(len(nn_groups_data)):
+	  for see in range(minim):
+	  
+	    mixed_group_data.append(np.asarray(nn_groups_data[se][see]))
+	    
+	    mixed_group_label.append(np.asarray(nn_groups_label[se][see]))
+	print len(mixed_group_data)
+	minibatched_data, minibatched_label = [x for x in iter_minibatches(minim,mixed_group_data,mixed_group_label)]
 	#visitbatches(nets,nn_groups_data,nn_groups_label,[],it=iters)
 	visitClassicBatches(nets[0],mixed_group_data,mixed_group_label,it=iters)
 	one = accuracy(nets[0], validation_data, validation_label, thr=0.5)
