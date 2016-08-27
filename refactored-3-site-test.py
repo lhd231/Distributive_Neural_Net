@@ -6,7 +6,7 @@ from sklearn.datasets import make_moons
 from numpy import count_nonzero
 import time
 
-import nnS
+import nn_updates as nnS
 import math
 import random
 from scipy.stats import multivariate_normal as norm
@@ -17,7 +17,7 @@ import seaborn
 
 minibatch = 2
 nonlin = 'relu'
-eta = 0.025
+eta = 0.001
 pool = ThreadPool(10)
 
 def gauss(x,mu,sigma):
@@ -27,7 +27,7 @@ def split(data, label):
   pointMid1 = (0,1)
   pointMid2 = (1,-.5)
   pointEdge1 = (-.9,.4)
-  pointEdge2 = (0,.4)
+  pointEdge2 = (.1,0)
   pointEdge3 = (.8,.4)
   pointEdge4 = (1.8,0)
   brown1 = list()
@@ -92,17 +92,19 @@ def split(data, label):
 
 #Organizes our data to make handling easier and chunks based on current position in the
 #data
-def organize_data(total_data,total_label,i):
+def organize_data(total_data,total_label,i,sample_size):
     new_total_data = []
     new_total_label = []
-    for x in range(i-10,i):
+    for x in range(i-sample_size,i):
       new_total_data.append(total_data[0][x])
       new_total_data.append(total_data[1][x])
       new_total_data.append(total_data[2][x])
       new_total_label.append(total_label[0][x])
       new_total_label.append(total_label[1][x])
       new_total_label.append(total_label[2][x])
-    
+      #print total_label[0][x]
+      #print total_label[1][x]
+      #print total_label[2][x]
     return new_total_data, new_total_label
   
   
@@ -162,12 +164,12 @@ horn1Acc = [[0 for i in range(50)] for j in range(10)]
 horn2Acc = [[0 for i in range(50)] for j in range(10)]
 middleAcc = [[0 for i in range(50)] for j in range(10)]
 number_of_sites = 3
-
+sample_size = 10
 def sing_run(te):
     print te
-    data, label = make_moons(n_samples=2000, shuffle=True, noise=0.1,random_state = int(time.time()))
+    data, label = make_moons(n_samples=2000, shuffle=True, noise=0.01,random_state = int(time.time()))
     
-    data,validation_data,label,validation_label = train_test_split(data,label,train_size = .20)
+    data,validation_data,label,validation_label = train_test_split(data,label,train_size = .50)
     
     #Here, we a list of three lists for each piece of the "moon"
     total_data, total_label = split(data,label)
@@ -181,45 +183,74 @@ def sing_run(te):
 
 
     #Our five neural networks
-    nnTogetherClassic = nnS.nn_build(1,[2,6,6,1],eta=eta,nonlin=nonlin)
-    nnHorn1 = nnS.nn_build(1,[2,6,6,1],eta=eta,nonlin=nonlin)
-    nnHorn2 = nnS.nn_build(1,[2,6,6,1],eta=eta,nonlin=nonlin)
-    nnMiddle = nnS.nn_build(1,[2,6,6,1],eta=eta,nonlin=nonlin)
-    nnDecent = nnS.nn_build(1,[2,6,6,1],eta=eta,nonlin=nonlin)
+    nnTogetherClassic = nnS.nn_build(1,[2,10,10,1],eta=eta,nonlin=nonlin)
+    nnHorn1 = nnS.nn_build(1,[2,10,10,1],eta=eta,nonlin=nonlin)
+    nnHorn2 = nnS.nn_build(1,[2,10,10,1],eta=eta,nonlin=nonlin)
+    nnMiddle = nnS.nn_build(1,[2,10,10,1],eta=eta,nonlin=nonlin)
+    nnDecent = nnS.nn_build(1,[2,10,10,1],eta=eta,nonlin=nonlin)
 
-  
- 
-    for i in range(10,minim - minim%10,10):#
+    print minim
+    data_map = []
+    label_map = []
+    for i in range(sample_size,minim - minim%sample_size,sample_size):#
 
         groups_data = []
         groups_label = []
         nets = []
         batches = []
 
+        horn1_data,horn1_label = [x for x in iter_minibatches(1,total_data[0],total_label[0])]
+	horn2_data,horn2_label = [x for x in iter_minibatches(1,total_data[2],total_label[2])]
+	middle_data,middle_label = [x for x in iter_minibatches(1,total_data[1],total_label[1])]
+        iters = 500
         
-
-        iters = 4000
-        new_total_data = []
-        new_total_label = []
-        new_total_data,new_total_label = organize_data(total_data, total_label,i)
-
-        batchesData1,batchesLabel1 = [x for x in iter_minibatches(1,new_total_data,new_total_label)]
-
+        #These are the total data pools.  We then turn them in mini batches for centralized and decentralized
+        new_total_data,new_total_label = organize_data(total_data, total_label,i,sample_size)
+        centralized_data,centralized_label = [x for x in iter_minibatches(1,new_total_data,new_total_label)]
+	#print str(new_total_data[0]) + " " + str(new_total_label[0])
+	#print str(new_total_data[1]) + " " + str(new_total_label[1])
+	#print str(new_total_data[2]) + " " + str(new_total_label[2])
+	#print str(new_total_data[3]) + " " + str(new_total_label[3])
+	#print str(new_total_data[4]) + " " + str(new_total_label[4])
+	#print str(new_total_data[5]) + " " + str(new_total_label[5])
+	#print "break"
 	batches_decent_data, batches_decent_label = [x for x in iter_minibatches(3,new_total_data,new_total_label)]
-	
-
-
+	#print str(batches_decent_data[0][0]) + " " + str(batches_decent_label[0][0])
+	#print str(batches_decent_data[0][1]) + " " + str(batches_decent_label[0][1])
+	#print str(batches_decent_data[0][2]) + " " + str(batches_decent_label[0][2])
+	#print str(batches_decent_data[1][0]) + " " + str(batches_decent_label[1][0])
+	#print str(batches_decent_data[1][1]) + " " + str(batches_decent_label[1][1])
+	#print str(batches_decent_data[1][2]) + " " + str(batches_decent_label[1][2])
+	data_map = data_map + batches_decent_data
+	label_map = label_map + batches_decent_label
+	#Debug tool to visualize data
+	plotArrX = []
+	plotArrY = []
+	plotColor = []
+	for pnt in data_map:
+	  for arr in pnt:
+	    plotArrX.append(arr[0])
+	    plotArrY.append(arr[1])
+	for l in label_map:
+	  plotColor.append(l)
+	#plt.scatter(plotArrX,plotArrY,c=plotColor)
+	#plt.show()
+	print len(batches_decent_data)
+	print len(batches_decent_data[0])
+	print len(batches_decent_label[0])
+	print len(centralized_data)
+	#Visit batches in this order:  decentralized, centralized, first horn, second horn
+	# and the middle part of the crescent
 	visitClassicBatches(nnDecent,batches_decent_data,batches_decent_label, it=iters)
-	print "finished decent"
-	visitClassicBatches(nnTogetherClassic,batchesData1,batchesLabel1,it=iters)
-	print "finished full cent"
-	visitClassicBatches(nnHorn1,batchesData1[:10],batchesLabel1[:10],it=iters)
-	visitClassicBatches(nnHorn2,batchesData1[20:30],batchesLabel1[20:30],it=iters)
-	visitClassicBatches(nnMiddle,batchesData1[10:20],batchesLabel1[10:20],it=iters)
-	print "finished 3 sites"
-        togetherAcc = accuracy(nnTogetherClassic,validation_data,validation_label,thr=.05)
-        
-        
+	
+	visitClassicBatches(nnTogetherClassic,centralized_data,centralized_label,it=iters)
+
+	visitClassicBatches(nnHorn1,horn1_data[i-sample_size:i],horn1_label[i-sample_size:i],it=iters)
+	visitClassicBatches(nnHorn2,horn2_data[i-sample_size:i],horn2_label[i-sample_size:i],it=iters)
+	visitClassicBatches(nnMiddle,middle_data[i-sample_size:i],middle_label[i-sample_size:i],it=iters)
+	
+	#The accuracies of our neural networks
+        togetherAcc = accuracy(nnTogetherClassic,validation_data,validation_label,thr=0.5)
         one = accuracy(nnDecent, validation_data, validation_label, thr=0.5)
 	oneAcc = accuracy(nnHorn1, validation_data, validation_label, thr=0.5)
 	twoAcc = accuracy(nnHorn2, validation_data, validation_label, thr=0.5)
@@ -243,10 +274,10 @@ nat = range(10)
 #sing_run(0)
 pool.map(sing_run,nat)
 
-np.savetxt("3-site-decent-2.txt",nn1Acc)
-np.savetxt("3-site-cent-2.txt",classAcc1)
-np.savetxt("3-site-cent-horn1-2.txt",horn1Acc)
-np.savetxt("3-site-cent-horn2-2.txt",horn2Acc)
-np.savetxt("3-site-cent-middle-2.txt",middleAcc)
+np.savetxt("new-3-site-decent.txt",nn1Acc)
+np.savetxt("new-3-site-cent.txt",classAcc1)
+np.savetxt("new-3-site-cent-horn1.txt",horn1Acc)
+np.savetxt("new-3-site-cent-horn2.txt",horn2Acc)
+np.savetxt("new-3-site-cent-middle.txt",middleAcc)
 
 
