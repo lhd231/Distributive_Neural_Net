@@ -55,7 +55,7 @@ def group_list(l, group_size):
         
 def single_run(te):
     print te
-    data, label = make_moons(n_samples=3000, noise=0.05, shuffle=True, random_state = int(time.time()))
+    data, label = make_moons(n_samples=2000, noise=0.05, shuffle=True, random_state = int(time.time()))
         
     data,validation_data,label,validation_label = train_test_split(data,label,train_size = .10)
         #separate the data set into buckets
@@ -77,7 +77,7 @@ def single_run(te):
 	number_of_nets = sites_numbers[s]
 	for x in range(number_of_nets):
             nets.append(nnDif.nn_build(1,[2,6,6,1],eta=eta,nonlin=nonlin))
-        iters = 1200
+        iters = 700
         group_size = len(total_data) / number_of_nets
         for j in range(number_of_nets):
 	    
@@ -106,7 +106,7 @@ def single_run(te):
 	visitClassicBatches(nets[0],mixed_group_data,mixed_group_label,it=iters)
 	one = accuracy(nets[0], validation_data, validation_label, thr=0.5)
 
-	nn1Acc[te][s/10] += one
+	nn1Acc[te][s] += one
 	print "accuracy"
 	print one
         '''
@@ -166,8 +166,8 @@ classAcc3 = [[0 for i in range(15)] for j in range(10)]
 number_of_nets = 10
 
 runs = [0,1,2,3,4,5,6]
-single_run(0)
-#pool.map(single_run,runs)
+#single_run(0)
+pool.map(single_run,runs)
 
 
 plt.xlabel("Number of batches [of size 50]")

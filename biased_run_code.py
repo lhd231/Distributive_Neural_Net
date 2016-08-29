@@ -22,7 +22,8 @@ def bias(data, label, bias):
   dnew = []
   lnew = []
   count = 0
-  totalCount = 500
+  totalCount = len(data)
+  print totalCount * bias
   for x,y in zip(data,label):
 
     if totalCount > 0:
@@ -30,12 +31,12 @@ def bias(data, label, bias):
 	dnew.append(x)
 	lnew.append(y)
 	count += 1
-	totalCount -= 1
+	#totalCount -= 1
       elif y == 1:
 	dnew.append(x)
 	lnew.append(y)
-	totalCount -= 1
-
+	#totalCount -= 1
+  print len(dnew)
   return dnew, lnew
 
 
@@ -83,6 +84,8 @@ def group_list(l, group_size):
     for i in xrange(0, len(l), group_size):
         yield np.asarray(l[i:i+group_size]).T
 #TODO:  make these guys 2D.  So we can avoid the problem of [(i+j)/2  + (k +l+m+n)] / 4
+
+site_size = 20
 def sing_run(counts):
       siteCount = 0
       if counts[1] == 2:
@@ -91,21 +94,22 @@ def sing_run(counts):
 	siteCount = 1
       if counts[1] == 100:
 	siteCount = 2
-      data, label = make_moons(n_samples=2000, noise=0.05, shuffle=True, random_state = int(time.time()))
+      number_of_nets = counts[1]
+      data, label = make_moons(n_samples=2 * site_size * number_of_nets, noise=0.05, shuffle=True, random_state = int(time.time()))
         
-      data,validation_data,label,validation_label = train_test_split(data,label,train_size = .60)
+      data,validation_data,label,validation_label = train_test_split(data,label,train_size = .50)
      
-      biases = [.02,.04,.08,.14,.20,.25,.30,.35,.40,.45,.50]
+      biases = [.02,.08,.15,.20,.25,.30,.35,.40,.5,1]
       biasCount = 0
       for b in biases:
 
 	nData, nLabel = (bias(data,label,b))
 
 	total_data = nData
-	
+	#print len(total_data)
 	total_label = nLabel#list(group_list(nLabel,1))
 
-        number_of_nets = counts[1]
+        
 	
         nn_groups_data = []
         nn_groups_label = list()
@@ -114,10 +118,10 @@ def sing_run(counts):
         nets = list()
         batches = list()
         for j in range(number_of_nets):
-	    dataCount = len(total_data) / counts[1]
+	    dataCount = len(total_data) / number_of_nets
             #x = (total_data[int(float(j)/number_of_nets*(len(total_data))):int(float((j+1))/number_of_nets*(len(total_data)))])
             x = total_data[dataCount * j : dataCount*(j+1)]
-
+	   
             nn_groups_data.append(x)
             #print len(nn_groups_data[j])
             #print "HERE BREAK"
@@ -160,7 +164,7 @@ def sing_run(counts):
 	start = time.time()
 	batches_data,batches_label = [x for x in iter_minibatches(number_of_nets,groups_data, groups_label)]
 	visitClassicBatches(nets[0], batches_data, batches_label, it=iters)
-        print time.time() - start
+        #print time.time() - start
             #calculate error
             #classic = accuracyClassic(nnClassic1,validation_data,validation_label, thr=0.5)
 	one = accuracy(nets[0], validation_data, validation_label, thr=0.5)
@@ -168,6 +172,7 @@ def sing_run(counts):
 	nat = nets[0]
             #build plottable arrays
 	nn1Acc[siteCount][counts[0]][biasCount] += one
+	print "accuracy"
 	print one
             #classAcc1[te][s/2] += classic
             #classAcc3[te][s/2] += classic3
@@ -176,7 +181,6 @@ def sing_run(counts):
 
 	biasCount +=1
 def batch_run(s):
-    print s
 
     
         #separate the data set into buckets
@@ -185,11 +189,11 @@ def batch_run(s):
 
     
     #The two separate site sets
-    nat = range(10)
-    siteNumbers = [s] * 10
+    nat = range(6)
+    siteNumbers = [s] * 6
     #TODO:  Set this guy to an array. 2, 10, 100
     pool.map(sing_run,zip(nat,siteNumbers))
-    sing_run(zip(nat,siteNumbers)[0])
+    #sing_run(zip(nat,siteNumbers)[0])
       
 nn1Acc = [[[0 for k in range(11)] for i in range(10)] for j in range(3)]
 
@@ -197,16 +201,16 @@ number_of_nets = 10
 sites = [2,10,100]
 siteCount = [0,1,2]
 #single_run(100)
-batch_run(2)
-#pool.map(batch_run,sites)
+#batch_run(100)
+pool.map(batch_run,sites)
     
 	
         #classAcc3[te][s/2] /= len(nn_groups_data)
 #nn1Acc[:] = [x / 17 for x in nn1Acc]
 #classAcc1[:] = [x / 17 for x in classAcc1]
 #classAcc3[:] = [x / 17 for x in classAcc3]
-plt.xlabel("Number of batches [of size 50]")
-plt.ylabel("Error rate")
+#plt.xlabel("Number of batches [of size 50]")
+#plt.ylabel("Error rate")
 np.savetxt("diff_biases-2sites.txt",nn1Acc[0])
 np.savetxt("diff_biases-100sites.txt",nn1Acc[1])
 np.savetxt("diff_biases-500sites.txt",nn1Acc[2])
@@ -218,5 +222,5 @@ np.savetxt("diff_biases-500sites.txt",nn1Acc[2])
 #plt.plot(classAcc2, "-b", label = "classic 1")
 #plt.plot(classAcc1, "-g", label = "classic 2")
 #plt.plot(classAcc3, "-p", label = "Classic Combined")
-plt.legend(loc='upper right')
+#plt.legend(loc='upper right')
 

@@ -208,24 +208,24 @@ def sing_run(te):
     random.shuffle(total_label[2])
     totlistX = []
     totlistY = []
-    for item in total_data[0]:
-      x=2
+    #for item in total_data[0]:
+      #x=2
       #totlistX.append(item[0])
       #totlistY.append(item[1])
-    for item in total_data[1]:
-	  x=2
+    #for item in total_data[1]:
+	  #x=2
 	  #totlistX.append(item[0])
 	  #totlistY.append(item[1])
-    for item in total_data[2]:
-	  x=2
-	  totlistX.append(item[0])
-	  totlistY.append(item[1])
-    print len(totlistX)
+    #for item in total_data[2]:
+	  #x=2
+	  #totlistX.append(item[0])
+	  #totlistY.append(item[1])
+    # print len(totlistX)
 
 
-    #plt.scatter(totlistX,totlistY,c=total_label[2])
+    #plt.scatter(totlistX,totlistY,c=total_label[0] + total_label[1] +total_label[2])
     #+total_label[1]+total_label[2]
-    #plt.show()
+
     #random.shuffle(total_label[2])
     '''for i in range(3):
       for item in total_data[i]:
@@ -260,24 +260,33 @@ def sing_run(te):
 
   
 
-    for i in range(10,minim - minim%10,10):#
-	totlistX = []
-	totlistY = []
+    for i in range((minim - minim%10) -10,minim - minim%10,10):#
+	totlistX1 = []
+	totlistY1 = []
+	totlistX2 = []
+	totlistY2 = []
+	totlistX3 = []
+	totlistY3 = []
 	for item in total_data[0][:i]:
 	  x=2
-	  totlistX.append(item[0])
-	  totlistY.append(item[1])
+	  totlistX1.append(item[0])
+	  totlistY1.append(item[1])
 	for item in total_data[1][:i]:
 	  x=2
-	  totlistX.append(item[0])
-	  totlistY.append(item[1])
+	  totlistX1.append(item[0])
+	  totlistY1.append(item[1])
 	for item in total_data[2][:i]:
-	  totlistX.append(item[0])
-	  totlistY.append(item[1])
-	print len(totlistX)
-	print len(total_label[0][:i]+total_label[1][:i]+total_label[2][:i])
-	#plt.scatter(totlistX,totlistY,c=total_label[0][:i]+total_label[1][:i]+total_label[2][:i])
+	  totlistX1.append(item[0])
+	  totlistY1.append(item[1])
+	#print len(totlistX)
+	#print len(total_label[0][:i]+total_label[1][:i]+total_label[2][:i])
+	#print "y"
+	#print [0 for x in total_label[0][:i]]+[1 for x in total_label[1][:i]]+[2 for x in total_label[2][:i]]
+	#plt.scatter(totlistX1,totlistY1,c=[0 for x in total_label[0][:i]]+[1 for x in total_label[1][:i]]+[2 for x in total_label[2][:i]])
+	#plt.scatter(totlistX2,totlistY2,c=[x + 2 for x in total_label[1][:i]])
+	#plt.scatter(totlistX3,totlistY3,c=[x + 4 for x in total_label[2][:i]])
 	#plt.show()
+	#exit(1)
 	#TODO:  Here, we need to rewrite the function so it 
         groups_data = []
         groups_label = []
@@ -367,7 +376,7 @@ def sing_run(te):
 	new_total_data = []
 	new_total_label = []
 	for x in range(i):
-	  for se in range len(nets):
+	  for se in range(len(nets)):
 	    new_total_data.append(total_data[0][x])
 	    new_total_data.append(total_data[1][x])
 	    new_total_data.append(total_data[2][x])
