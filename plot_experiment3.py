@@ -65,7 +65,7 @@ fw = np.concatenate((fw,dif3), axis = 0)
 #fw = np.concatenate((fw,c2w), axis=0)
 #fw = np.concatenate((fw,c3w), axis=0)
 #fw = c3w
-s = pd.DataFrame(fw, columns=[10,20,30,40,50,60,70,80,90,100,110])
+s = pd.DataFrame(fw, columns=[.02,.04,.08,.15,.20,.25,.30,.35,.40,.5,1])
 #s = pd.DataFrame({"error rate" : fw, "sample size" : [10,20,30,40,50,60,70,80,90,100,110,120,130,140,150,160,170,180,190,200,210,220,230,240,250,260,270,280,290,300,310,320,330,340,350,360,370,380,390,400,410,420,430,440,450,460,470,480,490,500]})
 #exercise = seaborn.load_dataset("exercise")
 two_keys = ["two"]*6
@@ -75,12 +75,12 @@ hundred_keys = ["hundred"]*6
 #mid_keys = ["mid"]*7
 #cent_keys = ["cent"]*7
 s["class"] = pd.Series(two_keys + ten_keys + hundred_keys, index = s.index,dtype="category")
-df_long = pd.melt(s,"class",var_name="sample size", value_name="error rate")
+df_long = pd.melt(s,"class",var_name="Bias Percentage", value_name="error rate (%)")
 #print df_long
 #seaborn.boxplot(data = df_long, hue_order="class")
 #seaborn.factorplot(data=df_long, x="sample size", hue="class", kind="violin")
 #seaborn.factorplot(x="sample size",y="error rate", data=df_long)
-seaborn.factorplot(x="sample size", y="error rate", hue="class",data=df_long,kind="box")
+seaborn.factorplot(x="Bias Percentage", y="error rate (%)", hue="class",data=df_long,kind="box")
 #seaborn.factorplot(x="sample size", y="error rate",data=df_long, kind="box")
 seaborn.plt.show()
 #seaborn.factorplot("sample size", hue="class", y="error rate", data=df_long, kind="box")

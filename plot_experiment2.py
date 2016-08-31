@@ -59,7 +59,7 @@ fw = dif
 #fw = np.concatenate((fw,c2w), axis=0)
 #fw = np.concatenate((fw,c3w), axis=0)
 #fw = c3w
-s = pd.DataFrame(fw, columns=[2,5,10,15,20,50,60,75,100,150])
+s = pd.DataFrame(fw, columns=[2,4,5,8,10,20,25,40,50,100])
 #s = pd.DataFrame({"error rate" : fw, "sample size" : [10,20,30,40,50,60,70,80,90,100,110,120,130,140,150,160,170,180,190,200,210,220,230,240,250,260,270,280,290,300,310,320,330,340,350,360,370,380,390,400,410,420,430,440,450,460,470,480,490,500]})
 #exercise = seaborn.load_dataset("exercise")
 #decent_keys = ["decent"]*7
@@ -68,12 +68,12 @@ s = pd.DataFrame(fw, columns=[2,5,10,15,20,50,60,75,100,150])
 #mid_keys = ["mid"]*7
 #cent_keys = ["cent"]*7
 #s["class"] = pd.Series(decent_keys + horn1_keys + cent_keys + mid_keys + horn2_keys, index = s.index,dtype="category")
-df_long = pd.melt(s,var_name="number of nets", value_name="error rate")
+df_long = pd.melt(s,var_name="number of sites", value_name="error rate (%)")
 #print df_long
 #seaborn.boxplot(data = df_long, hue_order="class")
 #seaborn.factorplot(data=df_long, x="sample size", hue="class", kind="violin")
 #seaborn.factorplot(x="sample size",y="error rate", data=df_long)
-seaborn.factorplot(x="number of nets", y="error rate",data=df_long,kind="box")
+seaborn.factorplot(x="number of sites", y="error rate (%)",data=df_long,kind="box")
 #seaborn.factorplot(x="sample size", y="error rate",data=df_long, kind="box")
 seaborn.plt.show()
 #seaborn.factorplot("sample size", hue="class", y="error rate", data=df_long, kind="box")

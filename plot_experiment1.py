@@ -67,12 +67,12 @@ horn2_keys = ["Horn2"]*7
 mid_keys = ["Middle"]*7
 cent_keys = ["Centralized"]*7
 s["class"] = pd.Series(decent_keys + horn1_keys + cent_keys + horn2_keys + mid_keys, index = s.index,dtype="category")
-df_long = pd.melt(s,"class", var_name="sample size", value_name="error rate")
+df_long = pd.melt(s,"class", var_name="sample size", value_name="error rate (%)")
 #print df_long
 #seaborn.boxplot(data = df_long, hue_order="class")
 #seaborn.factorplot(data=df_long, x="sample size", hue="class", kind="violin")
 #seaborn.factorplot(x="sample size",y="error rate", data=df_long)
-g = seaborn.factorplot(x="sample size", y="error rate", hue="class",data=df_long,kind="box", legend = False)
+g = seaborn.factorplot(x="sample size", y="error rate (%)", hue="class",data=df_long,kind="box", legend = False)
 g.despine(left=True)
 plt.legend(loc='upper right')
 #g.set_ylabels("survival probability")
