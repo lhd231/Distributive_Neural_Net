@@ -18,25 +18,28 @@ def gauss(x,mu,sigma):
   return norm(mu,[[sigma,0],[0, sigma]]).pdf(x)
 
 
-def bias(data, label, bias):
+def bias(data, label, bias, size):
   dnew = []
   lnew = []
   count = 0
   totalCount = len(data)
-  print totalCount * bias
+  #print "hi"
+  #print totalCount
+  #print size
+  #print totalCount * bias
   for x,y in zip(data,label):
 
     if totalCount > 0:
-      if y == 0 and count < totalCount *bias:
+      if y == 0 and count < size *bias:
 	dnew.append(x)
 	lnew.append(y)
 	count += 1
 	#totalCount -= 1
-      elif y == 1:
+      elif y == 1 and len(dnew) < size:
 	dnew.append(x)
 	lnew.append(y)
 	#totalCount -= 1
-  print len(dnew)
+  
   return dnew, lnew
 
 
@@ -95,19 +98,19 @@ def sing_run(counts):
       if counts[1] == 100:
 	siteCount = 2
       number_of_nets = counts[1]
-      data, label = make_moons(n_samples=2 * site_size * number_of_nets, noise=0.05, shuffle=True, random_state = int(time.time()))
+      data, label = make_moons(n_samples=6 * site_size * number_of_nets, noise=0.05, shuffle=True, random_state = int(time.time()))
         
       data,validation_data,label,validation_label = train_test_split(data,label,train_size = .50)
      
-      biases = [.02,.08,.15,.20,.25,.30,.35,.40,.5,1]
+      biases = [.01,.02,.05,.15,.20,.25,.30,.35,.40,.5]
       biasCount = 0
       for b in biases:
 
-	nData, nLabel = (bias(data,label,b))
+	#nData, nLabel = (bias(data,label,b))
 
-	total_data = nData
+	total_data = data
 	#print len(total_data)
-	total_label = nLabel#list(group_list(nLabel,1))
+	total_label = label#list(group_list(nLabel,1))
 
         
 	
@@ -120,15 +123,18 @@ def sing_run(counts):
         for j in range(number_of_nets):
 	    dataCount = len(total_data) / number_of_nets
             #x = (total_data[int(float(j)/number_of_nets*(len(total_data))):int(float((j+1))/number_of_nets*(len(total_data)))])
-            x = total_data[dataCount * j : dataCount*(j+1)]
-	   
-            nn_groups_data.append(x)
+            x = total_data[site_size * j * 3 : site_size*(j+1)*3]
+	    
+	    y = total_label[site_size * j*3 : site_size*(j+1)*3]
+	    d,l = bias(x,y,b,site_size)
+            nn_groups_data.append(d)
+            print len(d)
             #print len(nn_groups_data[j])
             #print "HERE BREAK"
             #print str(float((j+1))) + "  " + str(number_of_nets) + "  LEN TOTAL DATA: " + str(len(total_data)) 
             #print int(float((j+1))/number_of_nets*(len(total_data)/number_of_nets))
             #print "HERE END"
-            nn_groups_label.append(total_label[dataCount * j : dataCount*(j+1)])
+            nn_groups_label.append(l)
         #print len(nn_groups_data[1])
 
         nets = list()  #Our differential networks
@@ -149,7 +155,7 @@ def sing_run(counts):
 
 	groups_data = []
 	groups_label = []
-	for ke in range(0,len(nn_groups_data[0])):
+	for ke in range(0,site_size):
 	  for k in range(0,number_of_nets):
 	    groups_data.append((nn_groups_data[k][ke].T))
 	    groups_label.append(nn_groups_label[k][ke])
@@ -192,8 +198,8 @@ def batch_run(s):
     nat = range(6)
     siteNumbers = [s] * 6
     #TODO:  Set this guy to an array. 2, 10, 100
-    pool.map(sing_run,zip(nat,siteNumbers))
-    #sing_run(zip(nat,siteNumbers)[0])
+    #pool.map(sing_run,zip(nat,siteNumbers))
+    sing_run(zip(nat,siteNumbers)[0])
       
 nn1Acc = [[[0 for k in range(11)] for i in range(10)] for j in range(3)]
 
@@ -201,8 +207,8 @@ number_of_nets = 10
 sites = [2,10,100]
 siteCount = [0,1,2]
 #single_run(100)
-#batch_run(100)
-pool.map(batch_run,sites)
+batch_run(100)
+#pool.map(batch_run,sites)
     
 	
         #classAcc3[te][s/2] /= len(nn_groups_data)
