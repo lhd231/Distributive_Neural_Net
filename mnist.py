@@ -1,6 +1,6 @@
 import numpy as np
 #from nn import nn_build, forward, master_node, plot_decision2D
-import nn as nnDif
+
 from sklearn.cross_validation import train_test_split
 from sklearn.datasets import make_moons
 from numpy import count_nonzero
@@ -149,13 +149,13 @@ def visitbatches(nn, batches, labels, it=1000):
       nnDif.master_node(nn,batches,labels)
             #err.append(r)
 
-def visitClassicBatches(nn,data,labels, val_d, val_l, list, it=1000):
+def visitClassicBatches(nn,data,labels, val_d, val_l, l, test_val, it=1000):
     for c in range(it):
       for cc in range(len(data)):
 	  nnS.minibatch_fit(nn, data[cc], labels[cc])
       if c %10 == 0:
         acc = accuracy(nn, val_d, val_l, thr = 0.5)
-        list[c/10] = acc
+        l[test_val][c/10] = acc
         print acc
 def label_clean(label):
     nl = np.zeros(3)
@@ -191,11 +191,11 @@ def new_acc(nn, data, label, thr = 0.5):
       predict.append(False)
   return 100 * np.double(len(np.where(np.array(predict) == False)[0])) / np.double(len(predict))
 #Our list of accuracies.  And the number of nets (or number of sites)        
-nn1Acc = [0 for i in range(100)]
-classAcc = [0 for i in range(100)]
-eights = [0 for i in range(100)]
-sevens = [0 for i in range(100)]
-zeros = [0 for i in range(100)]
+nn1Acc = [[0 for i in range(100)]for x in range(10)]
+classAcc = [[0 for i in range(100)]for x in range(10)]
+eights = [[0 for i in range(100)]for x in range(10)]
+sevens = [[0 for i in range(100)]for x in range(10)]
+zeros = [[0 for i in range(100)]for x in range(10)]
 number_of_sites = 3
 sample_size = 10
 def sing_run(te):
@@ -262,10 +262,10 @@ def sing_run(te):
     iters = 500
 
     #Our five neural networks
-    nnTogetherClassic = nnS.nn_build(1,[784,10,10,3],eta=eta,nonlin="tanh")
-    nnHorn1 = nnS.nn_build(1,[784,10,10,3],eta=eta,nonlin="tanh")
-    nnHorn2 = nnS.nn_build(1,[784,10,10,3],eta=eta,nonlin="tanh")
-    nnMiddle = nnS.nn_build(1,[784,10,10,3],eta=eta,nonlin="tanh")
+    nnTogetherClassic = nnS.nn_build(1,[784,20,20,3],eta=eta,nonlin="tanh")
+    nnHorn1 = nnS.nn_build(1,[784,20,20,3],eta=eta,nonlin="tanh")
+    nnHorn2 = nnS.nn_build(1,[784,20,20,3],eta=eta,nonlin="tanh")
+    nnMiddle = nnS.nn_build(1,[784,20,20,3],eta=eta,nonlin="tanh")
     nnDecent = nnS.nn_build(1,[784,20,20,3],eta=eta,nonlin="tanh")
     one = accuracy(nnTogetherClassic, validation_data, validation_label, thr=0.5)
     
@@ -281,23 +281,23 @@ def sing_run(te):
     batches_decent_data, batches_decent_label = [x for x in iter_minibatches(3,new_total_data,new_total_label)]
     print len(centralized_data)
     print len(batches_decent_data)
-    visitClassicBatches(nnDecent,batches_decent_data,batches_decent_label,validation_data, validation_label,nn1Acc, it=iters)
+    visitClassicBatches(nnDecent,batches_decent_data,batches_decent_label,validation_data, validation_label,nn1Acc,te, it=iters)
     print "finished decents"
-    np.savetxt("decent-700.txt",nn1Acc)
-    visitClassicBatches(nnTogetherClassic,centralized_data,centralized_label,validation_data, validation_label,classAcc,it=iters)
+    np.savetxt("decent-sameBatch-tests.txt",nn1Acc)
+    visitClassicBatches(nnTogetherClassic,centralized_data,centralized_label,validation_data, validation_label,classAcc,te,it=iters)
     print "finished cents"
-    np.savetxt("cent-700.txt",classAcc)
-    visitClassicBatches(nnHorn1,horn1_data,horn1_label,validation_data, validation_label,eights,it=iters)
+    np.savetxt("cent-sameBatch-tests.txt",classAcc)
+    visitClassicBatches(nnHorn1,horn1_data,horn1_label,validation_data, validation_label,eights,te,it=iters)
     print "finished horn1"
-    np.savetxt("eights-700.txt",eights)    
-    visitClassicBatches(nnHorn2,horn2_data,horn2_label,validation_data, validation_label,sevens,it=iters)
-    np.savetxt("sevens-700.txt",sevens)    
-    visitClassicBatches(nnMiddle,middle_data,middle_label,validation_data, validation_label,zeros,it=iters)
-    np.savetxt("zeros-700.txt",zeros)
+    np.savetxt("eights-sameBatch-tests.txt",eights)    
+    visitClassicBatches(nnHorn2,horn2_data,horn2_label,validation_data, validation_label,sevens,te,it=iters)
+    np.savetxt("sevens-sameBatch-tests.txt",sevens)    
+    visitClassicBatches(nnMiddle,middle_data,middle_label,validation_data, validation_label,zeros,te,it=iters)
+    np.savetxt("zeros-sameBatch-tests.txt",zeros)
 
 nat = range(10)
-sing_run(0)
-#pool.map(sing_run,nat)
+#sing_run(0)
+pool.map(sing_run,nat)
 
 
 
