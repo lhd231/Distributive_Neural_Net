@@ -283,21 +283,21 @@ def sing_run(te):
     print len(batches_decent_data)
     visitClassicBatches(nnDecent,batches_decent_data,batches_decent_label,validation_data, validation_label,nn1Acc,te, it=iters)
     print "finished decents"
-    np.savetxt("decent-sameBatch-tests.txt",nn1Acc)
+    np.savetxt("decent-sameBatch-tests-ex.txt",nn1Acc)
     visitClassicBatches(nnTogetherClassic,centralized_data,centralized_label,validation_data, validation_label,classAcc,te,it=iters)
     print "finished cents"
-    np.savetxt("cent-sameBatch-tests.txt",classAcc)
+    np.savetxt("cent-sameBatch-tests-ex.txt",classAcc)
     visitClassicBatches(nnHorn1,horn1_data,horn1_label,validation_data, validation_label,eights,te,it=iters)
     print "finished horn1"
-    np.savetxt("eights-sameBatch-tests.txt",eights)    
+    np.savetxt("eights-sameBatch-tests-ex.txt",eights)    
     visitClassicBatches(nnHorn2,horn2_data,horn2_label,validation_data, validation_label,sevens,te,it=iters)
-    np.savetxt("sevens-sameBatch-tests.txt",sevens)    
+    np.savetxt("sevens-sameBatch-tests-ex.txt",sevens)    
     visitClassicBatches(nnMiddle,middle_data,middle_label,validation_data, validation_label,zeros,te,it=iters)
-    np.savetxt("zeros-sameBatch-tests.txt",zeros)
+    np.savetxt("zeros-sameBatch-tests-ex.txt",zeros)
 
 nat = range(10)
-#sing_run(0)
-pool.map(sing_run,nat)
+sing_run(0)
+#pool.map(sing_run,nat)
 
 
 
