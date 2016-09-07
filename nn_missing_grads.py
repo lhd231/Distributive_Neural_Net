@@ -1,14 +1,17 @@
- 
 import numpy as np
 import math
 from sklearn.preprocessing import LabelBinarizer
 import pylab as plt
+import sys
+#import ipdb
 
 
-def _relu(x, eps=1e-5): return max(eps, x)
+def _relu(x, eps=1e-5): 
+    return max(eps, x)
 
 
-def _d_relu(x, eps=1e-5): return 1. if x > eps else 0.0
+def _d_relu(x, eps=1e-5): 
+  return 1. if x > eps else 0.0
 
 
 def _sigmoid(x): return 1 / (1 + math.exp(-x))
@@ -26,8 +29,9 @@ def _d_sigmoid(x):
     s = _sigmoid(x)
     return s * (1 - s)
 
-
-def d_cost(output, target): return output - target
+#2 sites, 50 items.  To 50 sites, 2 items
+def d_cost(output, target): 
+  return output - target
 
 
 sigmoid = np.vectorize(_sigmoid)
@@ -48,18 +52,6 @@ def activate(act):
     if act == 'relu': return (relu, d_relu)
     if act == 'tanh': return (tanh, d_tanh)
 
-
-def weight_matrix(seed, innum, outnum, type='glorot', layer=0):
-    """
-    Returns randomly initialized weight matrix of appropriate dimensions
-    :param innum: number of neurons in the layer i
-    :param outnum: number of neurons in layer i+1
-    :return: weight matrix
-    """
-    np.random.seed(seed)
-    if type == 'glorot': W = np.random.uniform(low=-np.sqrt(6.0/(2*layer+1)), high=np.sqrt(6.0/(2*layer+1)), size=(outnum, innum))
-    if type == 'normal': W = np.random.rand(outnum, innum)
-    return W
 def addadadelta(nn):
     # need to add error checking if weights have been already initialized
     nn['E2'] = {}
@@ -73,7 +65,20 @@ def addadadelta(nn):
         nn['E2']['b'].append(np.zeros(nn['biases'][i].shape))
         nn['EW2']['W'].append(np.zeros(nn['weights'][i].shape))
         nn['EW2']['b'].append(np.zeros(nn['biases'][i].shape))
- 
+        
+def weight_matrix(seed, innum, outnum, type='glorot', layer=0):
+    """
+    Returns randomly initialized weight matrix of appropriate dimensions
+    :param innum: number of neurons in the layer i
+    :param outnum: number of neurons in layer i+1
+    :return: weight matrix
+    """
+    np.random.seed(seed)
+    if type == 'glorot': W = np.random.uniform(low=-np.sqrt(6.0/(2*layer+1)), high=np.sqrt(6.0/(2*layer+1)), size=(outnum, innum))
+    if type == 'normal': W = np.random.rand(outnum, innum)   
+
+    return W
+
 
 def nn_build(seed,layerlist, nonlin='sigmoid', eta=0.01, init='glorot'):
     """
@@ -82,7 +87,6 @@ def nn_build(seed,layerlist, nonlin='sigmoid', eta=0.01, init='glorot'):
     :param nonlin: nonlinearity which is either 'sigmoid', 'tanh', or 'ReLU'
     :return: a dictionary with neural network parameters
     """
-    
     nn = {}
     nn['eta'] = eta
     nn['weights'] = []
@@ -103,12 +107,13 @@ def forward(nn, data):
     :param data: a numpy n by m matrix where m in the number of input units in nn
     :return: the output layer activations
     """
-    nn['activations'] = [data.T]
+    nn['activations'] = [data]
     nn['zs'] = []
     for w, s, b in map(None, nn['weights'], nn['nonlin'], nn['biases']):
         z = np.dot(w, nn['activations'][-1]).T + b
         nn['zs'].append(z.T)
         nn['activations'].append(s[0](z.T))
+
     return nn['activations'][-1]
 
 
@@ -120,7 +125,7 @@ def test_forward():
     nn['nonlin'] = [(sigmoid, d_sigmoid)]
     x = np.array([1, 0])
     t = sigmoid(np.dot(nn['weights'][1], sigmoid(np.dot(nn['weights'][0], x) + nn['biases'][0]) + nn['biases'][1]))
-
+    #ipdb.set_trace()seed
     print forward(nn, x)
     print t
 
@@ -128,45 +133,42 @@ def test_forward():
 def average_gradient(deltas, activations):
     dW = 0
     for i in range(deltas.shape[1]):
-
         dW += np.outer(deltas[:,i], activations[:,i].T)
     return dW/deltas.shape[1]
 
-def backprop(nn, delta):
-    eta = nn['eta']
-
+def gradient(nn, delta):
+ 
     nabla_b = []
     nabla_w = []
-    first_b = []
-    first_g = []
+
     # output
     dact = nn['nonlin'][-1][1]
-    dW = average_gradient(delta*dact(nn['zs'][-1]), nn['activations'][-2])
 
+    dW = average_gradient(delta*dact(nn['zs'][-1]), nn['activations'][-2])
     
     nabla_b.append(np.mean(delta, axis=1))
     nabla_w.append(dW)
-    
-    for i in range(len(nn['weights']) - 2, -1, -1):#range(len(nn['weights']) - 2, -1, -1):
-
+    for i in range(len(nn['weights']) - 2, -1, -1):
         dact = nn['nonlin'][i][1]
         delta = np.dot(nn['weights'][i+1].T, delta * dact(nn['zs'][i+1]))
-	if i != 0:
-	  dW = average_gradient(delta,nn['activations'][i])
-	  nabla_b.append(np.mean(delta*dact(nn['zs'][i]),axis=1))
-	  nabla_w.append(dW)
-        else:
-	  for l in range(len(delta.T)):
-	    first_b.append(delta[:,l]*dact(nn['zs'][i][:,l]))
-	    first_g.append(np.outer(delta[:,l], nn['activations'][i][:,l].T))
+	
+        dW = average_gradient(delta,nn['activations'][i])
+        
+        nabla_b.append(np.mean(delta*dact(nn['zs'][i]),axis=1))
+        nabla_w.append(dW)
+    return nabla_w, nabla_b
 
-    for k in range(len(first_g)):
-        nn['weights'][0] -= eta * first_g[k]
-        nn['biases'][0] -= eta * first_b[k]
+
+def backprop(nn, nabla_w, nabla_b):
+    eta = nn['eta']
     for i in range(1,len(nn['weights'])):
         nn['weights'][i] -= eta * nabla_w[-i]
         nn['biases'][i] -= eta * nabla_b[-i]
-
+ 
+def backprop_first_grads(nn, first_w, first_b):
+  eta = nn['eta']
+  nn['weights'][0] -= eta * first_w
+  nn['biases'][0] -= eta * first_b
 
 def expand_labels(labels):
     n = len(np.unique(labels))
@@ -176,8 +178,48 @@ def expand_labels(labels):
     lb = LabelBinarizer()
     l = lb.fit_transform(labels).T
     return l
+def master_node(nn,data,labels):
 
+    #minim = min(min(len(data[0]),len(data[1])),len(data[2]))
+    #minim = min(len(data[0]),len(data[1]))
+      newData = data#np.fliplr(np.asarray(data))
+      newLabel = labels#np.fliplr(np.asarray(labels))
+  
+    #for i in range(len(data)):
+      nabla_w = [0]*2
 
+      nabla_b = [0]*2
+      first_w = []
+      first_b = []
+      for n in range(len(nn)):
+
+        r = forward(nn[n], np.reshape(data[n],(784,1)))
+
+        delta = d_cost(r,labels[n])
+
+        w,b = gradient(nn[n], delta)
+        first_w.append(w[-1])
+        first_b.append(b[-1])
+	#print len(w)
+	#print len(b)
+	#print type(nabla_w[0])
+	for i in range(len(w)-1):
+		nabla_w[i] += w[i]
+		nabla_b[i] += b[i]
+
+      nabla_w = [x / len(nn) for x in nabla_w]
+      
+      nabla_b = [x / len(nn) for x in nabla_b]
+      for k in range(len(nn)):
+	backprop_first_grads(nn[k],first_w[k],first_b[k])
+      for net in nn:
+        backprop(net,nabla_w,nabla_b)
+#notes:  
+#Iterate
+#-call forward
+#-call d_cost
+#-call gradient
+#call backprop
 def minibatch_fit(nn, data, labels):
     r = forward(nn, data)
     dact = nn['nonlin'][-1][1]
