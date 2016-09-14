@@ -1,17 +1,35 @@
- 
 import numpy as np
 import math
 from sklearn.preprocessing import LabelBinarizer
 import pylab as plt
-
+import sklearn as sk
+import scipy as sp
 
 def _relu(x, eps=1e-5): return max(eps, x)
 
 
 def _d_relu(x, eps=1e-5): return 1. if x > eps else 0.0
 
+def _softmax(x):
+    """Compute softmax values for each sets of scores in x."""
+    e_x = np.exp(x - np.max(x))
+    return e_x / e_x.sum()
 
-def _sigmoid(x): return 1 / (1 + math.exp(-x))
+def _d_softmax(x):
+  sm = _softmax(x)
+  return sm * (1-sm)
+
+def log_loss(pred,true):
+    return sk.metrics.log_loss(true,pred)
+
+def _sigmoid(x): 
+  s = 0
+  try:  
+    s = 1 / (1 + math.exp(-x))
+  except OverflowError:
+    s= 1 / 1.0000000000001
+  return s
+  
 
 
 def _tanh(x): return math.tanh(x)
@@ -29,6 +47,13 @@ def _d_sigmoid(x):
 
 def d_cost(output, target): return output - target
 
+def logloss(act, pred):
+    epsilon = 1e-15
+    pred = sp.maximum(epsilon, pred)
+    pred = sp.minimum(1-epsilon, pred)
+    ll = sum(act*sp.log(pred) + sp.subtract(1,act)*sp.log(sp.subtract(1,pred)))
+    ll = ll * -1.0/len(act)
+    return ll
 
 sigmoid = np.vectorize(_sigmoid)
 d_sigmoid = np.vectorize(_d_sigmoid)
@@ -36,7 +61,8 @@ relu = np.vectorize(_relu)
 d_relu = np.vectorize(_d_relu)
 tanh = np.vectorize(_tanh)
 d_tanh = np.vectorize(_d_tanh)
-
+softmax = np.vectorize(_softmax)
+d_softmax = np.vectorize(_d_softmax)
 
 def activate(act):
     """
@@ -47,6 +73,7 @@ def activate(act):
     if act == 'sigmoid': return (sigmoid, d_sigmoid)
     if act == 'relu': return (relu, d_relu)
     if act == 'tanh': return (tanh, d_tanh)
+    if act == 'softmax': return (softmax, d_softmax)
 
 
 def weight_matrix(seed, innum, outnum, type='glorot', layer=0):
@@ -141,7 +168,9 @@ def backprop(nn, delta):
 
     # output
     dact = nn['nonlin'][-1][1]
+    
     dW = average_gradient(delta*dact(nn['zs'][-1]), nn['activations'][-2])
+
     nabla_b.append(np.mean(delta, axis=1))
     nabla_w.append(dW)
 
@@ -150,7 +179,7 @@ def backprop(nn, delta):
         delta = np.dot(nn['weights'][i+1].T, delta * dact(nn['zs'][i+1]))
 
         dW = average_gradient(delta,nn['activations'][i])
-        nabla_b.append(np.mean(delta*dact(nn['zs'][i]),axis=1))
+        nabla_b.append(np.mean(delta*(nn['zs'][i]),axis=1))
         nabla_w.append(dW)
 
 
@@ -168,11 +197,20 @@ def expand_labels(labels):
     l = lb.fit_transform(labels).T
     return l
 
-
+def label_bin(labels):
+    matr = np.zeros([labels.shape[0],3])
+    
+    for r in range(labels.shape[0]):
+          matr[r][labels[r]] = 1
+    return matr.T
+    
+    
 def minibatch_fit(nn, data, labels):
     r = forward(nn, data)
     dact = nn['nonlin'][-1][1]
-    delta = d_cost(r, labels) #* dact(nn['zs'][-1])
+    delta = d_cost(r,label_bin(labels)) #* dact(nn['zs'][-1])
+
+    #delta = np.append(delta, log_loss(r[1],labels).T)
     backprop(nn, delta)
     # ipdb.set_trace()
     return np.sqrt(np.sum(np.square(r - labels))) / 2

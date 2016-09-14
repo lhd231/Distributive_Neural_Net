@@ -229,13 +229,16 @@ def master_node(nn,data,labels):
     for i in range(first_w[key_site].shape[0]):
         for j in range(first_w[key_site].shape[1]):
             if first_w[key_site][i][j] > 0:
-                if random.randint(0,15000/1000) == 0:
+                if random.randint(0,15000/3000) == 0:
                     for k in range(len(first_w)):
                         average = 0
                         for l in range(len(first_w)):
                             average += first_w[l][i][j]
                         for l in range(len(first_w)):
                             first_w[l][i][j] = average /3
+                else:
+                    for l in range(len(first_w)):
+                        first_w[l][i][j] = 0
 
     #rows = [random.random()%6 for i in range(gradient_pos)]
     #cols = [random.random()%2 for i in range(gradient_pos)]
