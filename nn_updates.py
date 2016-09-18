@@ -198,7 +198,7 @@ def expand_labels(labels):
     return l
 
 def label_bin(labels):
-    matr = np.zeros([labels.shape[0],3])
+    matr = np.zeros([labels.shape[0],4])
     
     for r in range(labels.shape[0]):
           matr[r][labels[r]] = 1

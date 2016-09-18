@@ -8,7 +8,8 @@ import time
 import pandas as pd
 
 import nn_updates as nnS
-import nn_missing_grads_zeroedOut as nnDif
+#import nn_missing_grads_lilc as nnDif
+import nn_updates_sorted_grads as nnDif
 import math
 import random
 from scipy.stats import multivariate_normal as norm
@@ -116,15 +117,15 @@ def organize_data(total_data,total_label,i,sample_size):
 def randomize(total_data,total_label,seed):
     random.seed(seed)
     random.shuffle(total_data[0])
-    random.seed(seed)
+    random.seed(seed+1)
     random.shuffle(total_data[1])
-    random.seed(seed)
+    random.seed(seed+2)
     random.shuffle(total_data[2])
     random.seed(seed)
     random.shuffle(total_label[0])
-    random.seed(seed)
+    random.seed(seed+1)
     random.shuffle(total_label[1])
-    random.seed(seed)
+    random.seed(seed+2)
     random.shuffle(total_label[2])
     return total_data, total_label
 #adagrad and adadelta  esp adadelta
@@ -148,29 +149,27 @@ def iter_minibatches(chunksize, data, labels):
 def visitbatches(nn,data,labels, val_d, val_l, l, test_val, it=1000):
     for c in range(it):
       for cc in range(len(data)):
-         nnDif.master_node(nn, data[cc], labels[cc])
+	  nnDif.minibatch_fit(nn[0], data[cc], labels[cc])
       if c %10 == 0:
-        acc1 = accuracy(nn[0], val_d, val_l, thr = 0.5)
-        acc2 = accuracy(nn[1], val_d, val_l, thr = 0.5)
-        acc3 = accuracy(nn[2], val_d, val_l, thr = 0.5)
-        l[0][test_val][c/10] = acc1
-        l[1][test_val][c/10] = acc2
-        l[2][test_val][c/10] = acc3
-        print "break"
-        print acc1
-        print acc2
+        acc = accuracy(nn[0], val_d, val_l, thr = 0.5)
+        #acc1 = accuracy(nn[1], val_d, val_l, thr = 0.5)
+        #acc2 = accuracy(nn[2], val_d, val_l, thr = 0.5)
+        l[0][test_val][c/10] = acc
+        #l[1][test_val][c/10] = acc1
+        #l[2][test_val][c/10] = acc2
+        print acc
+
 
 def visitClassicBatches(nn,data,labels, val_d, val_l, l, test_val, it=1000):
     for c in range(it):
       for cc in range(len(data)):
-	  nnS.minibatch_fit(nn, data[cc], labels[cc])
+          nnS.minibatch_fit(nn, data[cc], labels[cc])
       if c %10 == 0:
         acc = accuracy(nn, val_d, val_l, thr = 0.5)
-        print test_val
         l[test_val][c/10] = acc
         print acc
 def label_clean(label):
-    nl = np.zeros(3)
+    nl = np.zeros(4)
     nl[label] = 1
     return nl
 
@@ -183,10 +182,8 @@ def accuracy(nn, data, label, thr = 0.5):
     acc = 0
     for i in range(len(data)):
       x = np.int8(nnS.forward(nn,data[i].T) > thr)
-
       if np.array_equal(x, label_clean(label[i])):
         acc += 1
-    #print np.int8(nnS.forward(nn,data[0].T)> thr)
     return float(acc) / float(len(data))
     #print np.int8(nnS.forward(nn,data[1500].T) > thr) == label[1500]
     #predict  = [ np.int8(nnS.forward(nn,data[c,:].T) > thr) == label_clean(label[c]) for c in range(data.shape[0])]
@@ -204,11 +201,11 @@ def new_acc(nn, data, label, thr = 0.5):
       predict.append(False)
   return 100 * np.double(len(np.where(np.array(predict) == False)[0])) / np.double(len(predict))
 #Our list of accuracies.  And the number of nets (or number of sites)        
-nn1Acc = [[[0 for i in range(100)]for x in range(10)] for y in range(3)]
-classAcc = [[0 for i in range(100)]for x in range(10)]
-eights = [[0 for i in range(100)]for x in range(10)]
-sevens = [[0 for i in range(100)]for x in range(10)]
-zeros = [[0 for i in range(100)]for x in range(10)]
+nn1Acc = [[[0 for i in range(400)]for x in range(6)] for y in range(3)]
+classAcc = [[0 for i in range(300)]for x in range(6)]
+eights = [[0 for i in range(300)]for x in range(6)]
+sevens = [[0 for i in range(300)]for x in range(6)]
+zeros = [[0 for i in range(300)]for x in range(6)]
 number_of_sites = 3
 sample_size = 10
 def sing_run(te):
@@ -224,43 +221,38 @@ def sing_run(te):
 
     img_data = img_data.astype(np.float64)
     #img_data, labels = make_moons(n_samples=2000, shuffle=False, noise=0.01,random_state = 4)#int(time.time())
-
-    
-    #validation_data = np.ones(shape = (1,786))
-    #validation_label = np.ones(shape = (1,1))
-    #data,validation_data,label,validation_label = train_test_split(data,label,train_size = .50)
-    total_data = [[] for i in range(3)]
-    total_label = [[] for i in range(3)]
+    total_data = [[] for i in range(4)]
+    total_label = [[] for i in range(4)]
     for sas in range(len(img_data)):
-      if labels[sas] == 8:
+      if labels[sas] == 0:
         total_data[0].append(img_data[sas])
         total_label[0].append(0)
-      if labels[sas] == 1:
+      if labels[sas] == 3:
         total_data[1].append(img_data[sas])
         total_label[1].append(1)
-      if labels[sas] == 7:
+      if labels[sas] == 8:
         total_data[2].append(img_data[sas])
         total_label[2].append(2)
+      if labels[sas] == 4:
+        total_data[3].append(img_data[sas])
+        total_label[3].append(3)
+
     print "built lists"
 
-    total_data[0],v,total_label[0],l = train_test_split(total_data[0],total_label[0],train_size = .2)
+    total_data,total_label = randomize(total_data,total_label,time.time())
+    total_data[0],v,total_label[0],l = train_test_split(total_data[0],total_label[0],train_size = .3)
     validation_data = v[:1000]
     validation_label = l[:1000] 
-    total_data[1],v,total_label[1],l = train_test_split(total_data[1],total_label[1],train_size = .2)
-    #print validation_data[0]    
 
-    validation_data = np.r_[validation_data,v[:1000]]
-
-    validation_label = np.r_[validation_label,l[:1000]] 
-    #for item in validation_label:
-      #print item
-    #exit(1)
-    
-    #HERE    
-    
-    total_data[2],v,total_label[2],l = train_test_split(total_data[2],total_label[2],train_size = .2)
-    validation_data = np.r_[validation_data,v[:1000]]
-    validation_label = np.r_[validation_label,l[:1000]]  
+    total_data[1],v,total_label[1],l = train_test_split(total_data[1],total_label[1],train_size = .3)
+    validation_data.extend(v[:1000])
+    validation_label.extend(l[:1000])
+    total_data[2],v,total_label[2],l = train_test_split(total_data[2],total_label[2],train_size = .3)
+    validation_data.extend(v[:1000])
+    validation_label.extend(l[:1000])
+    total_data[3],v,total_label[3],l = train_test_split(total_data[3],total_label[3],train_size = .3)
+    validation_data.extend(v[:1000])
+    validation_label.extend(l[:1000])
 
 
     #Here, we a list of three lists for each piece of the "moon"
@@ -269,57 +261,87 @@ def sing_run(te):
     #total_data, total_label = randomize(total_data,total_label,4)
     
     #find the minimum between the three sides.
-    total_data[0] = total_data[0][:100]    
-    total_data[1] = total_data[1][:100]    
-    total_data[2] = total_data[2][:100]    
     minim = min(min(len(total_data[0]),len(total_data[1])),len(total_data[2]))
+    main_count = 70
+    base_count = 30
+    total_data[0] = total_data[0][:main_count] + total_data[3][:base_count]
 
-    iters = 300
+    total_data[1] = total_data[1][:main_count] + total_data[3][base_count:base_count*2]
+    total_data[2] = total_data[2][:main_count] + total_data[3][base_count*2:base_count*3]
+    
+    print len(total_data[0])
+    print "up"
+    total_label[0] = total_label[0][:main_count] + total_label[3][:base_count]
+
+    total_label[1] = total_label[1][:main_count] + total_label[3][base_count:base_count*2]
+    total_label[2] = total_label[2][:main_count] + total_label[3][base_count*2:base_count*3]
+
+    iters = 500
+    site_data = []
+    site_label = []
+    site_data,site_label = randomize(total_data,total_label,time.time())
 
     #Our five neural networks
-    nnTogetherClassic = nnS.nn_build(1,[784,20,20,3],eta=eta,nonlin="tanh")
-    nnHorn1 = nnS.nn_build(1,[784,20,20,3],eta=eta,nonlin="tanh")
-    nnHorn2 = nnS.nn_build(1,[784,20,20,3],eta=eta,nonlin="tanh")
-    nnMiddle = nnS.nn_build(1,[784,20,20,3],eta=eta,nonlin="tanh")
+    nnTogetherClassic = nnS.nn_build(1,[784,20,20,4],eta=eta,nonlin="tanh")
+    nnHorn1 = nnS.nn_build(1,[784,20,20,4],eta=eta,nonlin="tanh")
+    nnHorn2 = nnS.nn_build(1,[784,20,20,4],eta=eta,nonlin="tanh")
+    nnMiddle = nnS.nn_build(1,[784,20,20,4],eta=eta,nonlin="tanh")
+
     nnDecent = []
     for i in range(3):
-      nnDecent.append(nnS.nn_build(1,[784,20,20,3],eta=eta,nonlin="tanh"))
+      nnDecent.append(nnS.nn_build(1,[784,20,20,4],eta=eta,nonlin="tanh"))
     #one = accuracy(nnTogetherClassic, validation_data, validation_label, thr=0.5)
-    total_data, total_label = randomize(total_data,total_label,time.time())
-    new_total_data,new_total_label = organize_data(total_data, total_label,minim,minim)
-    horn1_data,horn1_label = [x for x in iter_minibatches(1,total_data[0],total_label[0])]
-    horn2_data,horn2_label = [x for x in iter_minibatches(1,total_data[2],total_label[2])]
-    middle_data,middle_label = [x for x in iter_minibatches(1,total_data[1],total_label[1])]
-    
+    #total_data,total_label = randomize(total_data,total_label,time.time())
+    #new_total_data,new_total_label = organize_data(total_data, total_label,minim,minim)
+    horn1_data,horn1_label = [x for x in iter_minibatches(1,site_data[0],site_label[0])]
+    horn2_data,horn2_label = [x for x in iter_minibatches(1,site_data[1],site_label[1])]
+    middle_data,middle_label = [x for x in iter_minibatches(1,site_data[2],site_label[2])]
+    #middle_data,middle_label = [x for x in iter_minibatches(1,total_data[0][150:200],total_label[0][150:200])]
+    #middle_data,middle_label = [x for x in iter_minibatches(1,total_data[0][200:250],total_label[0][200:250])]
+   # middle_data,middle_label = [x for x in iter_minibatches(1,total_data[0][250:300],total_label[0][250:300])]
+
     #HERE
-    print len(new_total_data)
-    
-    centralized_data,centralized_label = [x for x in iter_minibatches(1,total_data[0]+total_data[1]+total_data[2],total_label[0]+total_label[1]+total_label[2])]
-    batches_decent_data, batches_decent_label = [x for x in iter_minibatches(3,new_total_data,new_total_label)]
+    #total_data[1] = [0] * 10
+    #total_data[2] = [0] * 10
+    new_total_data = site_data[:3]
+    new_total_label = site_label[:3]
+    print new_total_label[0][10]
+    x_new, y_new = organize_data(new_total_data,new_total_label,main_count + base_count,main_count + base_count)
+
+    #total_data,total_label = randomize(total_data,total_label,time.time())
+    centralized_data,centralized_label = [x for x in iter_minibatches(1,x_new,y_new)]
+    print centralized_label[-1]
+    batches_decent_data, batches_decent_label = [x for x in iter_minibatches(3,x_new,y_new)]
 
     visitbatches(nnDecent,batches_decent_data,batches_decent_label,validation_data, validation_label,nn1Acc,te, it=iters)
     print "finished decents"
-
-    visitClassicBatches(nnTogetherClassic,batches_decent_data,batches_decent_label,validation_data, validation_label,classAcc,te,it=iters)
+    #np.savetxt("decent-remGrad-all.txt",nn1Acc)
+    visitClassicBatches(nnTogetherClassic,centralized_data,centralized_label,validation_data, validation_label,classAcc,te,it=iters)
     print "finished cents"
-    
+    #np.savetxt("cent-remGrad-all.txt",classAcc)
     visitClassicBatches(nnHorn1,horn1_data,horn1_label,validation_data, validation_label,eights,te,it=iters)
     print "finished horn1"
-      
+    #np.savetxt("eights-remGrad-all.txt",eights)    
     visitClassicBatches(nnHorn2,horn2_data,horn2_label,validation_data, validation_label,sevens,te,it=iters)
-        
+    #np.savetxt("sevens-remGrad-all.txt",sevens)    
     visitClassicBatches(nnMiddle,middle_data,middle_label,validation_data, validation_label,zeros,te,it=iters)
-    
+    #np.savetxt("zeros-remGrad-all.txt",zeros)
 
 nat = range(10)
 for i in range(6):
     sing_run(i)
 #pool.map(sing_run,nat)
+np.savetxt("decent-remGrad-biasedMnist-s1-sortedGrads-fifth-2.txt",nn1Acc[0])
+np.savetxt("decent-remGrad-biasedMnist-s2-sortedGrads-fifth-2.txt",nn1Acc[1])
+np.savetxt("decent-remGrad-biasedMnist-s3-sortedGrads-fifth-2.txt",nn1Acc[2])
+np.savetxt("cent-remGrad-biasedMnist-sortedGrads-fifth-2.txt",classAcc)
+#visitClassicBatches(nnHorn1,horn1_data,horn1_label,validation_data, validation_label,eights,te,it=iters)
+print "finished horn1"
+np.savetxt("eights-remGrad-biasedMnist-sortedGrads-fifth-2.txt",eights)    
+#visitClassicBatches(nnHorn2,horn2_data,horn2_label,validation_data, validation_label,sevens,te,it=iters)
+np.savetxt("sevens-remGrad-biasedMnist-sortedGrads-fifth-2.txt",sevens)    
+#visitClassicBatches(nnMiddle,middle_data,middle_label,validation_data, validation_label,zeros,te,it=iters)
+np.savetxt("zeros-remGrad-biasedMnist-sortedGrads-fifth-2.txt",zeros)
 
-np.savetxt("decent-remGrad-s1-biasx.txt",nn1Acc[0])
-np.savetxt("decent-remGrad-s2-biasx.txt",nn1Acc[1])
-np.savetxt("decent-remGrad-s3-biasx.txt",nn1Acc[2])
-np.savetxt("cent-remGrad-biasx.txt",classAcc)
-np.savetxt("eights-remGrad-biasx.txt",eights)  
-np.savetxt("sevens-remGrad-biasx.txt",sevens)
-np.savetxt("zeros-remGrad-biasx.txt",zeros)
+
+

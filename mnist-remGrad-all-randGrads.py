@@ -9,7 +9,7 @@ import pandas as pd
 
 import nn_updates as nnS
 #import nn_missing_grads_lilc as nnDif
-import nn_missing_grads_zeroedOut as nnDif
+import nn_missing_grads as nnDif
 import math
 import random
 from scipy.stats import multivariate_normal as norm
@@ -20,7 +20,7 @@ import seaborn
 
 minibatch = 2
 nonlin = 'relu'
-eta = 0.01
+eta = 0.001
 pool = ThreadPool(10)
 
 def gauss(x,mu,sigma):
@@ -158,6 +158,7 @@ def visitbatches(nn,data,labels, val_d, val_l, l, test_val, it=1000):
         l[1][test_val][c/10] = acc1
         l[2][test_val][c/10] = acc2
         print acc
+
 def visitClassicBatches(nn,data,labels, val_d, val_l, l, test_val, it=1000):
     for c in range(it):
       for cc in range(len(data)):
@@ -200,11 +201,11 @@ def new_acc(nn, data, label, thr = 0.5):
       predict.append(False)
   return 100 * np.double(len(np.where(np.array(predict) == False)[0])) / np.double(len(predict))
 #Our list of accuracies.  And the number of nets (or number of sites)        
-nn1Acc = [[[0 for i in range(200)]for x in range(6)] for y in range(3)]
-classAcc = [[0 for i in range(200)]for x in range(6)]
-eights = [[0 for i in range(200)]for x in range(6)]
-sevens = [[0 for i in range(200)]for x in range(6)]
-zeros = [[0 for i in range(200)]for x in range(6)]
+nn1Acc = [[[0 for i in range(400)]for x in range(10)] for y in range(3)]
+classAcc = [[0 for i in range(300)]for x in range(10)]
+eights = [[0 for i in range(300)]for x in range(10)]
+sevens = [[0 for i in range(300)]for x in range(10)]
+zeros = [[0 for i in range(300)]for x in range(10)]
 number_of_sites = 3
 sample_size = 10
 def sing_run(te):
@@ -241,8 +242,8 @@ def sing_run(te):
     validation_data = v[:1000]
     validation_label = l[:1000] 
     
-    total_data[0] = total_data[0][:300]
-    total_label[0] = total_label[0][:300]
+    total_data[0] = total_data[0][:120]
+    total_label[0] = total_label[0][:120]
 
     #Here, we a list of three lists for each piece of the "moon"
     #total_data, total_label = split(data,label)
@@ -252,7 +253,7 @@ def sing_run(te):
     #find the minimum between the three sides.
     minim = min(min(len(total_data[0]),len(total_data[1])),len(total_data[2]))
     print len(total_data[0])
-    iters = 400
+    iters = 2500
 
     #Our five neural networks
     nnTogetherClassic = nnS.nn_build(1,[784,20,20,3],eta=eta,nonlin="tanh")
@@ -268,9 +269,9 @@ def sing_run(te):
     #one = accuracy(nnTogetherClassic, validation_data, validation_label, thr=0.5)
     #total_data,total_label = randomize(total_data,total_label,time.time())
     #new_total_data,new_total_label = organize_data(total_data, total_label,minim,minim)
-    horn1_data,horn1_label = [x for x in iter_minibatches(1,total_data[0][:100],total_label[0][:100])]
-    horn2_data,horn2_label = [x for x in iter_minibatches(1,total_data[0][100:200],total_label[0][100:200])]
-    middle_data,middle_label = [x for x in iter_minibatches(1,total_data[0][200:300],total_label[0][200:300])]
+    horn1_data,horn1_label = [x for x in iter_minibatches(1,total_data[0][:40],total_label[0][:40])]
+    horn2_data,horn2_label = [x for x in iter_minibatches(1,total_data[0][40:80],total_label[0][40:80])]
+    middle_data,middle_label = [x for x in iter_minibatches(1,total_data[0][80:120],total_label[0][80:120])]
     #middle_data,middle_label = [x for x in iter_minibatches(1,total_data[0][150:200],total_label[0][150:200])]
     #middle_data,middle_label = [x for x in iter_minibatches(1,total_data[0][200:250],total_label[0][200:250])]
    # middle_data,middle_label = [x for x in iter_minibatches(1,total_data[0][250:300],total_label[0][250:300])]
@@ -278,12 +279,16 @@ def sing_run(te):
     #HERE
     #total_data[1] = [0] * 10
     #total_data[2] = [0] * 10
-    
+    new_total_data = [total_data[0][:40],total_data[0][40:80],total_data[0][80:120]]
+    new_total_label = [total_label[0][:40],total_label[0][40:80],total_label[0][80:120]]
+    print len(new_total_data)
+    print len(new_total_data[0])
+    x_new, y_new = organize_data(new_total_data,new_total_label,40,40)
     #total_data,total_label = randomize(total_data,total_label,time.time())
-    centralized_data,centralized_label = [x for x in iter_minibatches(1,total_data[0],total_label[0])]
-    batches_decent_data, batches_decent_label = [x for x in iter_minibatches(3,total_data[0],total_label[0])]
+    centralized_data,centralized_label = [x for x in iter_minibatches(1,x_new,y_new)]
+    batches_decent_data, batches_decent_label = [x for x in iter_minibatches(3,x_new,y_new)]
     print len(centralized_data)
-    visitbatches(nnDecent,batches_decent_data,batches_decent_label,validation_data, validation_label,nn1Acc,te, it=iters*3)
+    visitbatches(nnDecent,batches_decent_data,batches_decent_label,validation_data, validation_label,nn1Acc,te, it=iters)
     print "finished decents"
     #np.savetxt("decent-remGrad-all.txt",nn1Acc)
     visitClassicBatches(nnTogetherClassic,centralized_data,centralized_label,validation_data, validation_label,classAcc,te,it=iters)
@@ -298,20 +303,20 @@ def sing_run(te):
     #np.savetxt("zeros-remGrad-all.txt",zeros)
 
 nat = range(10)
-for i in range(6):
+for i in range(10):
     sing_run(i)
 #pool.map(sing_run,nat)
-np.savetxt("decent-remGrad-all-s1-zeroedOut.txt",nn1Acc[0])
-np.savetxt("decent-remGrad-all-s2-zeroedOut.txt",nn1Acc[1])
-np.savetxt("decent-remGrad-all-s3-zeroedOut.txt",nn1Acc[2])
-np.savetxt("cent-remGrad-all-zeroedOut.txt",classAcc)
+np.savetxt("decent-remGrad-all-s1-3-lowData-extraSims-2.txt",nn1Acc[0])
+np.savetxt("decent-remGrad-all-s2-3-lowData-extraSims-2.txt",nn1Acc[1])
+np.savetxt("decent-remGrad-all-s3-3-lowData-extraSims-2.txt",nn1Acc[2])
+np.savetxt("cent-remGrad-all-3-lowData-extraSims-2.txt",classAcc)
 #visitClassicBatches(nnHorn1,horn1_data,horn1_label,validation_data, validation_label,eights,te,it=iters)
 print "finished horn1"
-np.savetxt("eights-remGrad-all-zeroedOut.txt",eights)    
+np.savetxt("eights-remGrad-all-3-lowData-extraSims-2.txt",eights)    
 #visitClassicBatches(nnHorn2,horn2_data,horn2_label,validation_data, validation_label,sevens,te,it=iters)
-np.savetxt("sevens-remGrad-all-zeroedOut.txt",sevens)    
+np.savetxt("sevens-remGrad-all-3-lowData-extraSims-2.txt",sevens)    
 #visitClassicBatches(nnMiddle,middle_data,middle_label,validation_data, validation_label,zeros,te,it=iters)
-np.savetxt("zeros-remGrad-all-zeroedOut.txt",zeros)
+np.savetxt("zeros-remGrad-all-3-lowData-extraSims-2.txt",zeros)
 
 
 

@@ -97,9 +97,6 @@ def split(data, label):
 def organize_data(total_data,total_label,i,sample_size):
     new_total_data = []
     new_total_label = []
-    print "hi"
-    print i
-    print i-sample_size
     for x in range(i-sample_size,i):
       new_total_data.append(total_data[0][x])
       new_total_data.append(total_data[1][x])
@@ -156,8 +153,7 @@ def visitbatches(nn,data,labels, val_d, val_l, l, test_val, it=1000):
         l[0][test_val][c/10] = acc1
         l[1][test_val][c/10] = acc2
         l[2][test_val][c/10] = acc3
-        print "break"
-        print acc1
+
         print acc2
 
 def visitClassicBatches(nn,data,labels, val_d, val_l, l, test_val, it=1000):
@@ -177,91 +173,63 @@ def label_clean(label):
 
 
 def accuracy(nn, data, label, thr = 0.5):
-    #print "start"
-    #print np.int8(nnS.forward(nn,data[1500].T) > .05)
-    #print label[1500]
-    acc = 0
-    for i in range(len(data)):
-      x = np.int8(nnS.forward(nn,data[i].T) > thr)
+    predict  = [ np.int8(nnDif.forward(nn,data[c,:]) > thr) == label[c] for c in range(data.shape[0])]
 
-      if np.array_equal(x, label_clean(label[i])):
-        acc += 1
-    #print np.int8(nnS.forward(nn,data[0].T)> thr)
-    return float(acc) / float(len(data))
-    #print np.int8(nnS.forward(nn,data[1500].T) > thr) == label[1500]
-    #predict  = [ np.int8(nnS.forward(nn,data[c,:].T) > thr) == label_clean(label[c]) for c in range(data.shape[0])]
-    #print len(np.where(np.asarray(predict)==False))
-    #print np.where(np.asarray(predict)==False)[1]
-    #return 100 / len(predict[0])  * np.double(len(np.where(np.asarray(predict)==False)[0]))/np.double(len(predict))
+    return 100 * np.double(len(np.where(np.asarray(predict)==False)[0]))/np.double(len(predict))
 
 def new_acc(nn, data, label, thr = 0.5):
   predict = []
   for i in range(len(data)):
-    print nnS.forward(nn,data[i])
     if np.argmax(nnS.forward(nn,data[i])) == label[i]:
       predict.append(True)
     else:
       predict.append(False)
   return 100 * np.double(len(np.where(np.array(predict) == False)[0])) / np.double(len(predict))
-#Our list of accuracies.  And the number of nets (or number of sites)        
-nn1Acc = [[[0 for i in range(100)]for x in range(10)] for y in range(3)]
-classAcc = [[0 for i in range(100)]for x in range(10)]
-eights = [[0 for i in range(100)]for x in range(10)]
-sevens = [[0 for i in range(100)]for x in range(10)]
-zeros = [[0 for i in range(100)]for x in range(10)]
+#Our list of accuracies.  And the number of nets (or number of sites)
+iters = 2000        
+nn1Acc = [[[0 for i in range(iters/10)]for x in range(10)] for y in range(3)]
+classAcc = [[0 for i in range(iters/10)]for x in range(10)]
+eights = [[0 for i in range(iters/10)]for x in range(10)]
+sevens = [[0 for i in range(iters/10)]for x in range(10)]
+zeros = [[0 for i in range(iters/10)]for x in range(10)]
 number_of_sites = 3
-sample_size = 10
+sample_size = 20
 def sing_run(te):
     print te
-    #data, label = make_moons(n_samples=2000, shuffle=True, noise=0.01,random_state = int(time.time()))
-    img_data = np.asarray(pd.read_csv("train.csv", sep=',', header=None, low_memory=False))
-	# get labels
+    data, label = make_moons(n_samples=2000, shuffle=True, noise=0.01,random_state = int(time.time()))
     
+    data,validation_data,label,validation_label = train_test_split(data,label,train_size = .50)
     
-    img_data = np.delete(img_data, 0, axis=0)
-    labels = np.asarray(img_data[:,0], np.dtype(int))
-    img_data = np.delete(img_data, 0, axis=1)
-
-    img_data = img_data.astype(np.float64)
-    #img_data, labels = make_moons(n_samples=2000, shuffle=False, noise=0.01,random_state = 4)#int(time.time())
-
+    #Here, we a list of three lists for each piece of the "moon"
+    total_data, total_label = split(data,label)
     
-    #validation_data = np.ones(shape = (1,786))
-    #validation_label = np.ones(shape = (1,1))
-    #data,validation_data,label,validation_label = train_test_split(data,label,train_size = .50)
-    total_data = [[] for i in range(3)]
-    total_label = [[] for i in range(3)]
-    for sas in range(len(img_data)):
-      if labels[sas] == 8:
-        total_data[0].append(img_data[sas])
-        total_label[0].append(0)
-      if labels[sas] == 1:
-        total_data[1].append(img_data[sas])
-        total_label[1].append(1)
-      if labels[sas] == 7:
-        total_data[2].append(img_data[sas])
-        total_label[2].append(2)
-    print "built lists"
-
-    total_data[0],v,total_label[0],l = train_test_split(total_data[0],total_label[0],train_size = .2)
-    validation_data = v[:1000]
-    validation_label = l[:1000] 
-    total_data[1],v,total_label[1],l = train_test_split(total_data[1],total_label[1],train_size = .2)
-    #print validation_data[0]    
-
-    validation_data = np.r_[validation_data,v[:1000]]
-
-    validation_label = np.r_[validation_label,l[:1000]] 
+    total_data, total_label = randomize(total_data,total_label,time.time())
     #for item in validation_label:
       #print item
     #exit(1)
     
     #HERE    
     
-    total_data[2],v,total_label[2],l = train_test_split(total_data[2],total_label[2],train_size = .2)
-    validation_data = np.r_[validation_data,v[:1000]]
-    validation_label = np.r_[validation_label,l[:1000]]  
-
+    print len(total_data)
+    print len(total_data[0])
+    horn1_data,horn1_label = [x for x in iter_minibatches(1,total_data[0][:sample_size],total_label[0])]
+    horn2_data,horn2_label = [x for x in iter_minibatches(1,total_data[2][:sample_size],total_label[2])]
+    middle_data,middle_label = [x for x in iter_minibatches(1,total_data[1][:sample_size],total_label[1])]
+    iters = 500
+        
+    #These are the total data pools.  We then turn them in mini batches for centralized and decentralized
+    new_total_data,new_total_label = organize_data(total_data, total_label,sample_size,sample_size)
+    print len(new_total_data)
+    centralized_data,centralized_label = [x for x in iter_minibatches(1,new_total_data,new_total_label)]
+    #print str(new_total_data[0]) + " " + str(new_total_label[0])
+    #print str(new_total_data[1]) + " " + str(new_total_label[1])
+    #print str(new_total_data[2]) + " " + str(new_total_label[2])
+    #print str(new_total_data[3]) + " " + str(new_total_label[3])
+    #print str(new_total_data[4]) + " " + str(new_total_label[4])
+    #print str(new_total_data[5]) + " " + str(new_total_label[5])
+    #print "break"
+    batches_decent_data, batches_decent_label = [x for x in iter_minibatches(3,new_total_data,new_total_label)]
+    
 
     #Here, we a list of three lists for each piece of the "moon"
     #total_data, total_label = split(data,label)
@@ -269,38 +237,32 @@ def sing_run(te):
     #total_data, total_label = randomize(total_data,total_label,4)
     
     #find the minimum between the three sides.
-    total_data[0] = total_data[0][:100]    
-    total_data[1] = total_data[1][:100]    
-    total_data[2] = total_data[2][:100]    
+    
     minim = min(min(len(total_data[0]),len(total_data[1])),len(total_data[2]))
+    print minim
 
-    iters = 300
 
     #Our five neural networks
-    nnTogetherClassic = nnS.nn_build(1,[784,20,20,3],eta=eta,nonlin="tanh")
-    nnHorn1 = nnS.nn_build(1,[784,20,20,3],eta=eta,nonlin="tanh")
-    nnHorn2 = nnS.nn_build(1,[784,20,20,3],eta=eta,nonlin="tanh")
-    nnMiddle = nnS.nn_build(1,[784,20,20,3],eta=eta,nonlin="tanh")
+    nnTogetherClassic = nnS.nn_build(1,[2,6,6,1],eta=eta,nonlin="tanh")
+    nnHorn1 = nnS.nn_build(1,[2,6,6,1],eta=eta,nonlin="tanh")
+    nnHorn2 = nnS.nn_build(1,[2,6,6,1],eta=eta,nonlin="tanh")
+    nnMiddle = nnS.nn_build(1,[2,6,6,1],eta=eta,nonlin="tanh")
     nnDecent = []
     for i in range(3):
-      nnDecent.append(nnS.nn_build(1,[784,20,20,3],eta=eta,nonlin="tanh"))
+      nnDecent.append(nnS.nn_build(1,[2,6,6,1],eta=eta,nonlin="tanh"))
     #one = accuracy(nnTogetherClassic, validation_data, validation_label, thr=0.5)
     total_data, total_label = randomize(total_data,total_label,time.time())
-    new_total_data,new_total_label = organize_data(total_data, total_label,minim,minim)
-    horn1_data,horn1_label = [x for x in iter_minibatches(1,total_data[0],total_label[0])]
-    horn2_data,horn2_label = [x for x in iter_minibatches(1,total_data[2],total_label[2])]
-    middle_data,middle_label = [x for x in iter_minibatches(1,total_data[1],total_label[1])]
-    
+    #new_total_data,new_total_label = organize_data(total_data, total_label,minim,minim)
+   
     #HERE
-    print len(new_total_data)
     
-    centralized_data,centralized_label = [x for x in iter_minibatches(1,total_data[0]+total_data[1]+total_data[2],total_label[0]+total_label[1]+total_label[2])]
+    #centralized_data,centralized_label = [x for x in iter_minibatches(1,total_data[0]+total_data[1]+total_data[2],total_label[0]+total_label[1]+total_label[2])]
     batches_decent_data, batches_decent_label = [x for x in iter_minibatches(3,new_total_data,new_total_label)]
-
+    print len(batches_decent_data[0])
     visitbatches(nnDecent,batches_decent_data,batches_decent_label,validation_data, validation_label,nn1Acc,te, it=iters)
     print "finished decents"
 
-    visitClassicBatches(nnTogetherClassic,batches_decent_data,batches_decent_label,validation_data, validation_label,classAcc,te,it=iters)
+    visitClassicBatches(nnTogetherClassic,centralized_data,centralized_label,validation_data, validation_label,classAcc,te,it=iters)
     print "finished cents"
     
     visitClassicBatches(nnHorn1,horn1_data,horn1_label,validation_data, validation_label,eights,te,it=iters)
@@ -316,10 +278,10 @@ for i in range(6):
     sing_run(i)
 #pool.map(sing_run,nat)
 
-np.savetxt("decent-remGrad-s1-biasx.txt",nn1Acc[0])
-np.savetxt("decent-remGrad-s2-biasx.txt",nn1Acc[1])
-np.savetxt("decent-remGrad-s3-biasx.txt",nn1Acc[2])
-np.savetxt("cent-remGrad-biasx.txt",classAcc)
-np.savetxt("eights-remGrad-biasx.txt",eights)  
-np.savetxt("sevens-remGrad-biasx.txt",sevens)
-np.savetxt("zeros-remGrad-biasx.txt",zeros)
+np.savetxt("decent-remGrad-s1-moons-noisy.txt",nn1Acc[0])
+np.savetxt("decent-remGrad-s2-moons-noisy.txt",nn1Acc[1])
+np.savetxt("decent-remGrad-s3-moons-noisy.txt",nn1Acc[2])
+np.savetxt("cent-remGrad-moons-noisy.txt",classAcc)
+np.savetxt("eights-remGrad-moons-noisy.txt",eights)  
+np.savetxt("sevens-remGrad-moons-noisy.txt",sevens)
+np.savetxt("zeros-remGrad-moons-noisy.txt",zeros)

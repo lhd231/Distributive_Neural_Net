@@ -7,23 +7,17 @@ import pylab as plt
 import numpy as np
 import seaborn
 import pandas as pd
-import collections
-
-rand_mat =np.random.choice([0,1],size=(20,784),p=[3./4,1./4])
-unique, counts = np.unique(rand_mat, return_counts=True)
-print dict(zip(unique,counts))
 #plt.xlabel("Number of batches [of size 50]")
 #plt.ylabel("Error rate")
 #print len(np.loadtxt("cent-sameBatch-all-2.txt")[0])
-#c4 = np.loadtxt("decent-remGrad-all-s2.txt")[:,:20]#np.loadtxt("zeros-sameBatch-all-test-2.txt")[:,:20]
-c3 = np.loadtxt("cent-remGrad-biasedMnist-sortedGrads-fifth-2.txt")[:,:50][:,1::5]#[:,1::50]#np.loadtxt("cent-sameBatch-all-test-5.txt")[:,:50]#[:,:10]
-c2 = np.loadtxt("decent-remGrad-biasedMnist-s1-sortedGrads-fifth-2.txt")[:,:50][:,1::5]#[:,1::50]#np.loadtxt("eights-sameBatch-all-test-5.txt")[:,:50]#[:,:10]
-c1 = np.loadtxt("decent-remGrad-biasedMnist-s2-sortedGrads-fifth-2.txt")[:,:50][:,1::5]#[:,1::50]#np.loadtxt("sevens-sameBatch-all-test-5.txt")[:,:50]#[:,:10]
-dif = np.loadtxt("decent-remGrad-biasedMnist-s3-sortedGrads-fifth-2.txt")[:,:50][:,1::5]#[:,1::50]#np.loadtxt("decent-sameBatch-all-test-5.txt")[:,:50]#[:,:10]
-cSite1 = np.loadtxt("eights-remGrad-biasedMnist-sortedGrads-fifth-2.txt")[:,:50][:,1::5]#[:,1::50]
-cSite2 = np.loadtxt("sevens-remGrad-biasedMnist-sortedGrads-fifth-2.txt")[:,:50][:,1::5]#[:,1::50]
-cSite3 = np.loadtxt("zeros-remGrad-biasedMnist-sortedGrads-fifth-2.txt")[:,:50][:,1::5]#[:,1::50]
-
+#c4 = np.loadtxt("decent-remGrad-all-s3.txt")[:,:20]#np.loadtxt("zeros-sameBatch-all-test-2.txt")[:,:20]
+c3 = np.loadtxt("cent-remGrad-biasedMnist.txt")[:,:40][:,1::2]#[:,1::20]#np.loadtxt("cent-sameBatch-all-test-2.txt")[:,:20]#[:,:10]
+c2 = np.loadtxt("decent-remGrad-biasedMnist-s1.txt")[:,:40][:,1::2]#[:,1::20]#np.loadtxt("eights-sameBatch-all-test-2.txt")[:,:20]#[:,:10]
+c1 = np.loadtxt("decent-remGrad-biasedMnist-s2.txt")[:,:40][:,1::2]#[:,1::20]#np.loadtxt("sevens-sameBatch-all-test-2.txt")[:,:20]#[:,:10]
+dif = np.loadtxt("decent-remGrad-biasedMnist-s3.txt")[:,:40][:,1::2]#[:,1::20]#np.loadtxt("decent-sameBatch-all-test-2.txt")[:,:20]#[:,:10]
+cSite1 = np.loadtxt("eights-remGrad-biasedMnist.txt")[:,:40][:,1::2]#[:,1::20]
+cSite2 = np.loadtxt("sevens-remGrad-biasedMnist.txt")[:,:40][:,1::2]#[:,1::20]
+cSite3 = np.loadtxt("zeros-remGrad-biasedMnist.txt")[:,:40][:,1::2]#[:,1::20]
 
 #class2 = np.mean(c2, axis=0)
 #print len(c3[0])
@@ -72,7 +66,7 @@ fw = np.concatenate((fw,cSite3),axis=0)
 #fw = np.concatenate((fw,c2w), axis=0)
 #fw = np.concatenate((fw,c3w), axis=0)
 #fw = c3w
-col=range(50,550,50)
+col=range(20,420,20)
 s = pd.DataFrame(fw, columns=col)
 #s = pd.DataFrame({"error rate" : fw, "sample size" : [10,20,30,40,50,60,70,80,90,100,110,120,130,140,150,160,170,180,190,200,210,220,230,240,250,260,270,280,290,300,310,320,330,340,350,360,370,380,390,400,410,420,430,440,450,460,470,480,490,500]})
 #exercise = seaborn.load_dataset("exercise")
@@ -95,7 +89,7 @@ g.despine(left=True)
 plt.legend(loc='lower right')
 #g.set_ylabels("survival probability")
 #seaborn.factorplot(x="sample size", y="error rate",data=df_long, kind="box")
-seaborn.plt.savefig("mixed_gradients_sorted-fith_grads-2.svg",bbox_inches="tight",pad_inches=0)
+seaborn.plt.savefig("mixed_gradients_not_zeros_moons.svg",bbox_inches="tight",pad_inches=0)
 seaborn.plt.show(g)
 #seaborn.factorplot("sample size", hue="class", y="error rate", data=df_long, kind="box")
 #seaborn.boxplot(data=dif)

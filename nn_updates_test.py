@@ -2,21 +2,34 @@ import numpy as np
 import math
 from sklearn.preprocessing import LabelBinarizer
 import pylab as plt
-import random
-import time
-import collections
-#import ipdb
+import sklearn as sk
+import scipy as sp
+
+def _relu(x, eps=1e-5): return max(eps, x)
 
 
-def _relu(x, eps=1e-5): 
-    return max(eps, x)
+def _d_relu(x, eps=1e-5): return 1. if x > eps else 0.0
 
+def _softmax(x):
+    """Compute softmax values for each sets of scores in x."""
+    e_x = np.exp(x - np.max(x))
+    return e_x / e_x.sum()
 
-def _d_relu(x, eps=1e-5): 
-  return 1. if x > eps else 0.0
+def _d_softmax(x):
+  sm = _softmax(x)
+  return sm * (1-sm)
 
+def log_loss(pred,true):
+    return sk.metrics.log_loss(true,pred)
 
-def _sigmoid(x): return 1 / (1 + math.exp(-x))
+def _sigmoid(x): 
+  s = 0
+  try:  
+    s = 1 / (1 + math.exp(-x))
+  except OverflowError:
+    s= 1 / 1.0000000000001
+  return s
+  
 
 
 def _tanh(x): return math.tanh(x)
@@ -31,10 +44,16 @@ def _d_sigmoid(x):
     s = _sigmoid(x)
     return s * (1 - s)
 
-#2 sites, 50 items.  To 50 sites, 2 items
-def d_cost(output, target): 
-  return output - target
 
+def d_cost(output, target): return output - target
+
+def logloss(act, pred):
+    epsilon = 1e-15
+    pred = sp.maximum(epsilon, pred)
+    pred = sp.minimum(1-epsilon, pred)
+    ll = sum(act*sp.log(pred) + sp.subtract(1,act)*sp.log(sp.subtract(1,pred)))
+    ll = ll * -1.0/len(act)
+    return ll
 
 sigmoid = np.vectorize(_sigmoid)
 d_sigmoid = np.vectorize(_d_sigmoid)
@@ -42,7 +61,8 @@ relu = np.vectorize(_relu)
 d_relu = np.vectorize(_d_relu)
 tanh = np.vectorize(_tanh)
 d_tanh = np.vectorize(_d_tanh)
-
+softmax = np.vectorize(_softmax)
+d_softmax = np.vectorize(_d_softmax)
 
 def activate(act):
     """
@@ -53,7 +73,20 @@ def activate(act):
     if act == 'sigmoid': return (sigmoid, d_sigmoid)
     if act == 'relu': return (relu, d_relu)
     if act == 'tanh': return (tanh, d_tanh)
+    if act == 'softmax': return (softmax, d_softmax)
 
+
+def weight_matrix(seed, innum, outnum, type='glorot', layer=0):
+    """
+    Returns randomly initialized weight matrix of appropriate dimensions
+    :param innum: number of neurons in the layer i
+    :param outnum: number of neurons in layer i+1
+    :return: weight matrix
+    """
+    np.random.seed(seed)
+    if type == 'glorot': W = np.random.uniform(low=-np.sqrt(6.0/(2*layer+1)), high=np.sqrt(6.0/(2*layer+1)), size=(outnum, innum))
+    if type == 'normal': W = np.random.rand(outnum, innum)
+    return W
 def addadadelta(nn):
     # need to add error checking if weights have been already initialized
     nn['E2'] = {}
@@ -67,20 +100,7 @@ def addadadelta(nn):
         nn['E2']['b'].append(np.zeros(nn['biases'][i].shape))
         nn['EW2']['W'].append(np.zeros(nn['weights'][i].shape))
         nn['EW2']['b'].append(np.zeros(nn['biases'][i].shape))
-        
-def weight_matrix(seed, innum, outnum, type='glorot', layer=0):
-    """
-    Returns randomly initialized weight matrix of appropriate dimensions
-    :param innum: number of neurons in the layer i
-    :param outnum: number of neurons in layer i+1
-    :return: weight matrix
-    """
-    np.random.seed(seed)
-    if type == 'glorot': W = np.random.uniform(low=-np.sqrt(6.0/(2*layer+1)), high=np.sqrt(6.0/(2*layer+1)), size=(outnum, innum))
-    if type == 'normal': W = np.random.rand(outnum, innum)   
-
-    return W
-
+ 
 
 def nn_build(seed,layerlist, nonlin='sigmoid', eta=0.01, init='glorot'):
     """
@@ -90,7 +110,6 @@ def nn_build(seed,layerlist, nonlin='sigmoid', eta=0.01, init='glorot'):
     :return: a dictionary with neural network parameters
     """
     
-    random.seed(time.time())
     nn = {}
     nn['eta'] = eta
     nn['weights'] = []
@@ -117,7 +136,6 @@ def forward(nn, data):
         z = np.dot(w, nn['activations'][-1]).T + b
         nn['zs'].append(z.T)
         nn['activations'].append(s[0](z.T))
-
     return nn['activations'][-1]
 
 
@@ -129,51 +147,51 @@ def test_forward():
     nn['nonlin'] = [(sigmoid, d_sigmoid)]
     x = np.array([1, 0])
     t = sigmoid(np.dot(nn['weights'][1], sigmoid(np.dot(nn['weights'][0], x) + nn['biases'][0]) + nn['biases'][1]))
-    #ipdb.set_trace()seed
+
     print forward(nn, x)
     print t
 
 
-def average_gradient(deltas, activations):
+def average_gradient(deltas, activations, rand = 1):
     dW = 0
+    
     for i in range(deltas.shape[1]):
-        dW += np.outer(deltas[:,i], activations[:,i].T)
+
+        dW += np.outer(deltas[:,i], activations[:,i].T) * rand
+        
+    
     return dW/deltas.shape[1]
 
-def gradient(nn, delta):
- 
+def backprop(nn, delta):
+    eta = nn['eta']
+
     nabla_b = []
     nabla_w = []
 
     # output
     dact = nn['nonlin'][-1][1]
-
-    dW = average_gradient(delta*dact(nn['zs'][-1]), nn['activations'][-2])
     
+    dW = average_gradient(delta*dact(nn['zs'][-1]), nn['activations'][-2])
+
     nabla_b.append(np.mean(delta, axis=1))
     nabla_w.append(dW)
+
     for i in range(len(nn['weights']) - 2, -1, -1):
         dact = nn['nonlin'][i][1]
         delta = np.dot(nn['weights'][i+1].T, delta * dact(nn['zs'][i+1]))
-    
-        dW = average_gradient(delta,nn['activations'][i])
-        
-        nabla_b.append(np.mean(delta*dact(nn['zs'][i]),axis=1))
+        if i == 0:
+            rand_mat =np.random.choice([0,1],size=(20,784),p=[4./5,1./5])
+            dW = average_gradient(delta,nn['activations'][i],rand = rand_mat)
+        else:
+            dW = average_gradient(delta,nn['activations'][i])
+        nabla_b.append(np.mean(delta*(nn['zs'][i]),axis=1))
         nabla_w.append(dW)
-    return nabla_w, nabla_b
 
 
-def backprop(nn, nabla_w, nabla_b):
-    eta = nn['eta']
-    for i in range(1,len(nn['weights'])):
-        nn['weights'][i] -= eta * nabla_w[-i]
-        nn['biases'][i] -= eta * nabla_b[-i]
- 
-def backprop_first_grads(nn, first_w, first_b):
-  eta = nn['eta']
+    for i in range(len(nn['weights'])):
+        nn['weights'][i] -= eta * nabla_w[-i - 1]
+        nn['biases'][i] -= eta * nabla_b[-i - 1]
 
-  nn['weights'][0] -= eta * first_w
-  nn['biases'][0] -= eta * first_b
 
 def expand_labels(labels):
     n = len(np.unique(labels))
@@ -183,101 +201,21 @@ def expand_labels(labels):
     lb = LabelBinarizer()
     l = lb.fit_transform(labels).T
     return l
-    
+
 def label_bin(labels):
-    matr = np.zeros([labels.shape[0],3])
+    matr = np.zeros([labels.shape[0],4])
     
     for r in range(labels.shape[0]):
           matr[r][labels[r]] = 1
     return matr.T
     
-def master_node(nn,data,labels):
-
-    #minim = min(min(len(data[0]),len(data[1])),len(data[2]))
-    #minim = min(len(data[0]),len(data[1]))
-    newData = data#np.fliplr(np.asarray(data))
-    newLabel = labels#np.fliplr(np.asarray(labels))
-  
-    #for i in range(len(data)):
-    nabla_w = [0]*2
-
-    nabla_b = [0]*2
-    first_w = []
-    first_b = []
-    w = 0
-    b = 0
-    for n in range(len(nn)):
-        r = forward(nn[n], np.reshape(data[n],(1,data[n].shape[0])))
-        delta = d_cost(r,label_bin(np.array([labels[n]])))
-
-        w,b = gradient(nn[n], delta)
-        first_w.append(w[-1])
-        first_b.append(b[-1])
-
-        #print len(w)
-        #print len(b)
-        #print type(nabla_w[0])
-        for i in range(len(w)-1):
-            nabla_w[i] += w[i]
-            nabla_b[i] += b[i]
-
-    key_site = random.randint(0,2)
-
-
-    averaged_b = 0
-    for i in range(len(first_b)):
-        averaged_b += first_b[i]
-    for i in range(len(first_b)):
-        first_b[i] = averaged_b / 3
-        
-    #unique, counts = np.unique(rand_mat, return_counts=True)
-    #print dict(zip(unique,counts))
-    averaged = first_w[-1] #* rand_mat#np.random.randint(2,size=(first_w[0].shape[0],first_w.shape[1]))
-    for i in range(len(first_w) - 1):
-        print i
-        averaged = averaged + first_w[i] #* rand_mat) + averaged
-    for i in range(len(first_w)):
-        first_w[i] = first_w[i] / 3
     
-
-    '''for i in range(first_w[key_site].shape[0]):
-        for j in range(first_w[key_site].shape[1]):
-            if first_w[key_site][i][j] >= 0:
-                if random.randint(0,0) == 0:
-                    average = 0
-                    for l in range(len(first_w)):
-                        average += first_w[l][i][j]
-                    for l in range(len(first_w)):
-                        first_w[l][i][j] = average /3
-
-                else:
-                    for l in range(len(first_w)):
-                        first_w[l][i][j] = 0.0
-            else:
-                for l in range(len(first_w)):
-                    first_w[l][i][j] = 0.0
-                    '''
-    #rows = [random.random()%6 for i in range(gradient_pos)]
-    #cols = [random.random()%2 for i in range(gradient_pos)]
-
-    nabla_w = [x / len(nn) for x in nabla_w]
-      
-    nabla_b = [x / len(nn) for x in nabla_b]
-
-    for k in range(len(nn)):
-        backprop_first_grads(nn[k],first_w[i],first_b[i])
-    for net in nn:
-        backprop(net,nabla_w,nabla_b)
-#notes:  
-#Iterate
-#-call forward
-#-call d_cost
-#-call gradient
-#call backprop
 def minibatch_fit(nn, data, labels):
     r = forward(nn, data)
     dact = nn['nonlin'][-1][1]
-    delta = d_cost(r, labels) #* dact(nn['zs'][-1])
+    delta = d_cost(r,label_bin(labels)) #* dact(nn['zs'][-1])
+
+    #delta = np.append(delta, log_loss(r[1],labels).T)
     backprop(nn, delta)
     # ipdb.set_trace()
     return np.sqrt(np.sum(np.square(r - labels))) / 2

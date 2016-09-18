@@ -184,7 +184,7 @@ def expand_labels(labels):
     return l
     
 def label_bin(labels):
-    matr = np.zeros([labels.shape[0],3])
+    matr = np.zeros([labels.shape[0],4])
     
     for r in range(labels.shape[0]):
           matr[r][labels[r]] = 1
@@ -218,19 +218,14 @@ def master_node(nn,data,labels):
         for i in range(len(w)-1):
             nabla_w[i] += w[i]
             nabla_b[i] += b[i]
-    gradient_pos = 6
+
     key_site = random.randint(0,2)
-    rows = []
-    cols = []
-    rand_pos_size = 0
-    averages = []
-    
+
 
     for i in range(first_w[key_site].shape[0]):
         for j in range(first_w[key_site].shape[1]):
             if first_w[key_site][i][j] > 0:
-                if random.randint(0,15000/1000) == 0:
-                    for k in range(len(first_w)):
+                if random.randint(0,3) == 0:
                         average = 0
                         for l in range(len(first_w)):
                             average += first_w[l][i][j]
