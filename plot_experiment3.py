@@ -7,6 +7,7 @@ Created on Mon May 16 16:26:09 2016
 import numpy as np
 import seaborn
 import pandas as pd
+import pylab as plt
 #plt.xlabel("Number of batches [of size 50]")
 #plt.ylabel("Error rate")
 
@@ -14,9 +15,9 @@ import pandas as pd
 #c3 = np.loadtxt("up-new-3-site-cent-horn2.txt")
 #c2 = np.loadtxt("up-new-3-site-cent-middle.txt")
 #c1 = np.loadtxt("up-new-3-site-cent.txt")
-dif = np.loadtxt("up-diff_biases-2sites.txt")
-dif2 = np.loadtxt("up-diff_biases-100sites.txt")
-dif3 = np.loadtxt("up-diff_biases-500sites.txt")
+dif = np.subtract(1,np.divide(np.loadtxt("diff_biases-2sites-prop.txt"),100))
+dif2 = np.subtract(1,np.divide(np.loadtxt("diff_biases-100sites-prop.txt"),100))
+dif3 = np.subtract(1,np.divide(np.loadtxt("diff_biases-500sites-prop.txt"),100))
 print len(dif[0])
 print len(dif2[0])
 print len(dif3[0])
@@ -65,23 +66,26 @@ fw = np.concatenate((fw,dif3), axis = 0)
 #fw = np.concatenate((fw,c2w), axis=0)
 #fw = np.concatenate((fw,c3w), axis=0)
 #fw = c3w
-s = pd.DataFrame(fw, columns=[.02,.04,.08,.15,.20,.25,.30,.35,.40,.5,1])
+s = pd.DataFrame(fw, columns=[.01,.02,.05,.15,.20,.25,.30,.35,.40,.5])
 #s = pd.DataFrame({"error rate" : fw, "sample size" : [10,20,30,40,50,60,70,80,90,100,110,120,130,140,150,160,170,180,190,200,210,220,230,240,250,260,270,280,290,300,310,320,330,340,350,360,370,380,390,400,410,420,430,440,450,460,470,480,490,500]})
 #exercise = seaborn.load_dataset("exercise")
-two_keys = ["two"]*6
-ten_keys = ["ten"]*6
-hundred_keys = ["hundred"]*6
+two_keys = ["Two"]*6
+ten_keys = ["Ten"]*6
+hundred_keys = ["One Hundred"]*6
 #horn2_keys = ["horn2"]*7
 #mid_keys = ["mid"]*7
 #cent_keys = ["cent"]*7
+pal = seaborn.color_palette("hls",7)
 s["class"] = pd.Series(two_keys + ten_keys + hundred_keys, index = s.index,dtype="category")
-df_long = pd.melt(s,"class",var_name="Bias Percentage", value_name="error rate (%)")
+df_long = pd.melt(s,"class",var_name="Bias Percentage", value_name="Accuracy")
 #print df_long
 #seaborn.boxplot(data = df_long, hue_order="class")
 #seaborn.factorplot(data=df_long, x="sample size", hue="class", kind="violin")
 #seaborn.factorplot(x="sample size",y="error rate", data=df_long)
-seaborn.factorplot(x="Bias Percentage", y="error rate (%)", hue="class",data=df_long,kind="box")
+seaborn.factorplot(x="Bias Percentage", y="Accuracy", hue="class",palette = pal, data=df_long,kind="box",linewidth=.7,size=4,aspect=2, legend = False)
+plt.legend(loc='lower right')
 #seaborn.factorplot(x="sample size", y="error rate",data=df_long, kind="box")
+seaborn.plt.savefig("Bias_clean_smaller_lines_different_colors.svg",bbox_inches="tight",pad_inches=0)
 seaborn.plt.show()
 #seaborn.factorplot("sample size", hue="class", y="error rate", data=df_long, kind="box")
 #seaborn.boxplot(data=dif)

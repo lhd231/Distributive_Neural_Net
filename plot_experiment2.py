@@ -3,7 +3,7 @@
 Created on Mon May 16 16:26:09 2016
 @author: LHD
 """
-#import pylab as plt
+import pylab as plt
 import numpy as np
 import seaborn
 import pandas as pd
@@ -14,7 +14,7 @@ import pandas as pd
 #c3 = np.loadtxt("up-new-3-site-cent-horn2.txt")
 #c2 = np.loadtxt("up-new-3-site-cent-middle.txt")
 #c1 = np.loadtxt("up-new-3-site-cent.txt")
-dif = np.loadtxt("up-Many-sites-same-samps.txt")
+dif = np.subtract(1,np.divide(np.loadtxt("up-Many-sites-same-samps.txt"),100))
 #class2 = np.mean(c2, axis=0)
 #print len(c3[0])
 #print len(dif[0])
@@ -68,13 +68,16 @@ s = pd.DataFrame(fw, columns=[2,4,5,8,10,20,25,40,50,100])
 #mid_keys = ["mid"]*7
 #cent_keys = ["cent"]*7
 #s["class"] = pd.Series(decent_keys + horn1_keys + cent_keys + mid_keys + horn2_keys, index = s.index,dtype="category")
-df_long = pd.melt(s,var_name="number of sites", value_name="error rate (%)")
+df_long = pd.melt(s,var_name="number of sites", value_name="Accuracy")
 #print df_long
+
+
 #seaborn.boxplot(data = df_long, hue_order="class")
 #seaborn.factorplot(data=df_long, x="sample size", hue="class", kind="violin")
 #seaborn.factorplot(x="sample size",y="error rate", data=df_long)
-seaborn.factorplot(x="number of sites", y="error rate (%)",data=df_long,kind="box")
-#seaborn.factorplot(x="sample size", y="error rate",data=df_long, kind="box")
+seaborn.factorplot(x="number of sites", y="Accuracy",data=df_long,kind="box",aspect=2,color="blue")
+seaborn.plt.ylim(.6,1)#seaborn.factorplot(x="sample size", y="error rate",data=df_long, kind="box")
+seaborn.plt.savefig("moons_variable_sites_same_data.svg",bbox_inches='tight',pad_inches=0)
 seaborn.plt.show()
 #seaborn.factorplot("sample size", hue="class", y="error rate", data=df_long, kind="box")
 #seaborn.boxplot(data=dif)

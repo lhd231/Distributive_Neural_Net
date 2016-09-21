@@ -29,17 +29,17 @@ def bias(data, label, bias, size):
   #print totalCount * bias
   for x,y in zip(data,label):
 
-    if totalCount > 0:
-      if y == 0 and count < size *bias:
-	dnew.append(x)
-	lnew.append(y)
-	count += 1
-	#totalCount -= 1
-      elif y == 1 and len(dnew) < size:
-	dnew.append(x)
-	lnew.append(y)
-	#totalCount -= 1
-  
+
+    if y == 0 and count < size *bias:
+      dnew.append(x)
+      lnew.append(y)
+      count += 1
+  for x,y in zip(data,label):
+    if y == 1 and len(dnew) < size:
+      dnew.append(x)
+      lnew.append(y)
+
+
   return dnew, lnew
 
 
@@ -74,7 +74,7 @@ def visitbatches(nn, batches, labels, errlist, it=1000):
 def visitClassicBatches(nn,data, labels, it=1000):
     for c in range(it):
         for cc in range(len(data)):
-	  nnS.minibatch_fit(nn, data[cc], labels[cc])
+          nnS.minibatch_fit(nn, data[cc], labels[cc])
 
 def accuracy(nn, data, label, thr = 0.5):
     predict  = [ np.int8(nnDif.forward(nn,data[c,:]) > thr) == label[c] for c in range(data.shape[0])]
@@ -88,32 +88,33 @@ def group_list(l, group_size):
         yield np.asarray(l[i:i+group_size]).T
 #TODO:  make these guys 2D.  So we can avoid the problem of [(i+j)/2  + (k +l+m+n)] / 4
 
-site_size = 20
+site_size = 100
 def sing_run(counts):
       siteCount = 0
       if counts[1] == 2:
-	siteCount = 0
+        siteCount = 0
       if counts[1] == 10:
-	siteCount = 1
+        siteCount = 1
       if counts[1] == 100:
-	siteCount = 2
+        siteCount = 2
       number_of_nets = counts[1]
       data, label = make_moons(n_samples=6 * site_size * number_of_nets, noise=0.05, shuffle=True, random_state = int(time.time()))
         
       data,validation_data,label,validation_label = train_test_split(data,label,train_size = .50)
      
       biases = [.01,.02,.05,.15,.20,.25,.30,.35,.40,.5]
+      #biases = [.01,.5]
       biasCount = 0
       for b in biases:
+        
+        #nData, nLabel = (bias(data,label,b))
 
-	#nData, nLabel = (bias(data,label,b))
-
-	total_data = data
-	#print len(total_data)
-	total_label = label#list(group_list(nLabel,1))
+        total_data = data
+        #print len(total_data)
+        total_label = label#list(group_list(nLabel,1))
 
         
-	
+  
         nn_groups_data = []
         nn_groups_label = list()
         groups_data = list()
@@ -121,21 +122,21 @@ def sing_run(counts):
         nets = list()
         batches = list()
         for j in range(number_of_nets):
-	    dataCount = len(total_data) / number_of_nets
-            #x = (total_data[int(float(j)/number_of_nets*(len(total_data))):int(float((j+1))/number_of_nets*(len(total_data)))])
-            x = total_data[site_size * j * 3 : site_size*(j+1)*3]
-	    
-	    y = total_label[site_size * j*3 : site_size*(j+1)*3]
-	    d,l = bias(x,y,b,site_size)
-            nn_groups_data.append(d)
-            print len(d)
+          dataCount = len(total_data) / number_of_nets
+          #x = (total_data[int(float(j)/number_of_nets*(len(total_data))):int(float((j+1))/number_of_nets*(len(total_data)))])
+          x = total_data[site_size * j * 3 : site_size*(j+1)*3]
+          
+          y = total_label[site_size * j*3 : site_size*(j+1)*3]
+          d,l = bias(x,y,b,site_size)
+          nn_groups_data.append(d)
+
             #print len(nn_groups_data[j])
             #print "HERE BREAK"
             #print str(float((j+1))) + "  " + str(number_of_nets) + "  LEN TOTAL DATA: " + str(len(total_data)) 
             #print int(float((j+1))/number_of_nets*(len(total_data)/number_of_nets))
             #print "HERE END"
-            nn_groups_label.append(l)
-        #print len(nn_groups_data[1])
+          nn_groups_label.append(l)
+          #print len(nn_groups_data[1])
 
         nets = list()  #Our differential networks
         batches = list() #a list to store every separate site set
@@ -153,39 +154,43 @@ def sing_run(counts):
             nets.append(nnDif.nn_build(1,[2,6,6,1],eta=eta,nonlin=nonlin))
 
 
-	groups_data = []
-	groups_label = []
-	for ke in range(0,site_size):
-	  for k in range(0,number_of_nets):
-	    groups_data.append((nn_groups_data[k][ke].T))
-	    groups_label.append(nn_groups_label[k][ke])
+        groups_data = []
+        groups_label = []
+        print "y"
+        for ke in range(0,number_of_nets):
+          for k in range(0,site_size):
+            groups_data.append((nn_groups_data[ke][k].T))
+            groups_label.append(nn_groups_label[ke][k])
 
             #t = [x for x in iter_minibatches(2,total_groups_data.T, total_groups_label)]
             #t3 = [x for x in iter_minibatches(2,total_groups_data.T, total_groups_label)]
-	err = []
+        err = []
             #Run the batches through the algos
-	iters = 1000
+        iters = 100
             #visitClassicBatches(nnClassic1,t, it=iters)
             #visitClassicBatches(nnClassic3,t3, it=iters)
-	start = time.time()
-	batches_data,batches_label = [x for x in iter_minibatches(number_of_nets,groups_data, groups_label)]
-	visitClassicBatches(nets[0], batches_data, batches_label, it=iters)
-        #print time.time() - start
+        start = time.time()
+        batches_data,batches_label = [x for x in iter_minibatches(site_size,groups_data, groups_label)]
+        visitClassicBatches(nets[0], batches_data, batches_label, it=iters)
+            #print time.time() - start
             #calculate error
+
             #classic = accuracyClassic(nnClassic1,validation_data,validation_label, thr=0.5)
-	one = accuracy(nets[0], validation_data, validation_label, thr=0.5)
+        print "has finished calc"        
+        one = accuracy(nets[0], validation_data, validation_label, thr=0.5)
             #classic3 = accuracyClassic(nnClassic3,validation_data,validation_label, thr=0.5)
-	nat = nets[0]
+        nat = nets[0]
             #build plottable arrays
-	nn1Acc[siteCount][counts[0]][biasCount] += one
-	print "accuracy"
-	print one
+        nn1Acc[siteCount][counts[0]][biasCount] += one
+        print "accuracy"
+        print one
+            
             #classAcc1[te][s/2] += classic
             #classAcc3[te][s/2] += classic3
 
             #print "us " + str(one) + " c1 " + str(classic) + " cc " + str(classic3)
 
-	biasCount +=1
+        biasCount +=1
 def batch_run(s):
 
     
@@ -198,8 +203,8 @@ def batch_run(s):
     nat = range(6)
     siteNumbers = [s] * 6
     #TODO:  Set this guy to an array. 2, 10, 100
-    #pool.map(sing_run,zip(nat,siteNumbers))
-    sing_run(zip(nat,siteNumbers)[0])
+    pool.map(sing_run,zip(nat,siteNumbers))
+    #sing_run(zip(nat,siteNumbers)[0])
       
 nn1Acc = [[[0 for k in range(11)] for i in range(10)] for j in range(3)]
 
@@ -207,19 +212,19 @@ number_of_nets = 10
 sites = [2,10,100]
 siteCount = [0,1,2]
 #single_run(100)
-batch_run(100)
-#pool.map(batch_run,sites)
+#batch_run(100)
+pool.map(batch_run,sites)
     
-	
+  
         #classAcc3[te][s/2] /= len(nn_groups_data)
 #nn1Acc[:] = [x / 17 for x in nn1Acc]
 #classAcc1[:] = [x / 17 for x in classAcc1]
 #classAcc3[:] = [x / 17 for x in classAcc3]
 #plt.xlabel("Number of batches [of size 50]")
 #plt.ylabel("Error rate")
-np.savetxt("diff_biases-2sites.txt",nn1Acc[0])
-np.savetxt("diff_biases-100sites.txt",nn1Acc[1])
-np.savetxt("diff_biases-500sites.txt",nn1Acc[2])
+np.savetxt("diff_biases-2sites-prop.txt",nn1Acc[0])
+np.savetxt("diff_biases-100sites-prop.txt",nn1Acc[1])
+np.savetxt("diff_biases-500sites-prop.txt",nn1Acc[2])
 #np.savetxt("classAcc1-datSwitch.txt",classAcc1)
 #np.savetxt("classAcc2-datSwitch.txt",classAcc2)
 #np.savetxt("Many-classAcc3-datSwitch.txt",classAcc3)

@@ -191,11 +191,11 @@ def new_acc(nn, data, label, thr = 0.5):
       predict.append(False)
   return 100 * np.double(len(np.where(np.array(predict) == False)[0])) / np.double(len(predict))
 #Our list of accuracies.  And the number of nets (or number of sites)        
-nn1Acc = [[0 for i in range(200)] for x in range(10)]
-classAcc = [[0 for i in range(200)] for x in range(10)]
-eights = [[0 for i in range(200)] for x in range(10)]
-sevens = [[0 for i in range(200)] for x in range(10)]
-zeros = [[0 for i in range(200)] for x in range(10)]
+nn1Acc = [[0 for i in range(50)] for x in range(10)]
+classAcc = [[0 for i in range(50)] for x in range(10)]
+eights = [[0 for i in range(50)] for x in range(10)]
+sevens = [[0 for i in range(50)] for x in range(10)]
+zeros = [[0 for i in range(50)] for x in range(10)]
 number_of_sites = 3
 sample_size = 10
 imd = np.asarray(pd.read_csv("train.csv", sep=',', header=None, low_memory=False))
@@ -267,17 +267,17 @@ def sing_run(te):
     nnHorn2 = nnS.nn_build(1,[784,20,20,3],eta=eta,nonlin="tanh")
     nnMiddle = nnS.nn_build(1,[784,20,20,3],eta=eta,nonlin="tanh")
     nnDecent = nnS.nn_build(1,[784,20,20,3],eta=eta,nonlin="tanh")
-    one = accuracy(nnTogetherClassic, validation_data, validation_label, thr=0.5)
+    #one = accuracy(nnTogetherClassic, validation_data, validation_label, thr=0.5)
     
     #new_total_data,new_total_label = organize_data(total_data, total_label,minim,minim)
     total_data, total_label = randomize(total_data,total_label,time.time() % 3)
-    centralized_data,centralized_label = [x for x in iter_minibatches(3,total_data[0][:300],total_label[0][:300])]
+    centralized_data,centralized_label = [x for x in iter_minibatches(3,total_data[0][:120],total_label[0][:120])]
 
     total_data, total_label = randomize(total_data,total_label,time.time() % 11)
-    batches_decent_data, batches_decent_label = [x for x in iter_minibatches(3,total_data[0][:300],total_label[0][:300])]
-    horn1_data,horn1_label = [x for x in iter_minibatches(1,total_data[0][:100],total_label[0][:100])]
-    horn2_data,horn2_label = [x for x in iter_minibatches(1,total_data[0][100:200],total_label[0][100:200])]
-    middle_data,middle_label = [x for x in iter_minibatches(1,total_data[0][200:300],total_label[0][200:300])]
+    batches_decent_data, batches_decent_label = [x for x in iter_minibatches(3,total_data[0][:120],total_label[0][:120])]
+    horn1_data,horn1_label = [x for x in iter_minibatches(1,total_data[0][:40],total_label[0][:40])]
+    horn2_data,horn2_label = [x for x in iter_minibatches(1,total_data[0][40:80],total_label[0][40:80])]
+    middle_data,middle_label = [x for x in iter_minibatches(1,total_data[0][80:120],total_label[0][80:120])]
     
     #HERE
     
@@ -287,22 +287,28 @@ def sing_run(te):
   
     visitClassicBatches(nnDecent,batches_decent_data,batches_decent_label,validation_data, validation_label,nn1Acc,te, it=iters)
     print "finished decents"
-    np.savetxt("decent-sameBatch-all-test-2.txt",nn1Acc)
+    
     
     visitClassicBatches(nnTogetherClassic,centralized_data,centralized_label,validation_data, validation_label,classAcc,te,it=iters)
     print "finished cents"
-    np.savetxt("cent-sameBatch-all-test-2.txt",classAcc)
+    
     visitClassicBatches(nnHorn1,horn1_data,horn1_label,validation_data, validation_label,eights,te,it=iters)
     print "finished horn1"
-    np.savetxt("eights-sameBatch-all-test-2.txt",eights)    
+        
     visitClassicBatches(nnHorn2,horn2_data,horn2_label,validation_data, validation_label,sevens,te,it=iters)
-    np.savetxt("sevens-sameBatch-all-test-2.txt",sevens)    
+       
     visitClassicBatches(nnMiddle,middle_data,middle_label,validation_data, validation_label,zeros,te,it=iters)
-    np.savetxt("zeros-sameBatch-all-test-2.txt",zeros)
+    
 
 nat = range(10)
-for i in range(6):
-  sing_run(6)
+for i in range(10):
+  sing_run(i)
+  
+np.savetxt("decent-sameBatch-all-test-3.txt",nn1Acc)
+np.savetxt("cent-sameBatch-all-test-3.txt",classAcc)
+np.savetxt("eights-sameBatch-all-test-3.txt",eights)
+np.savetxt("sevens-sameBatch-all-test-3.txt",sevens) 
+np.savetxt("zeros-sameBatch-all-test-3.txt",zeros)
 #pool.map(sing_run,nat)
 
 

@@ -9,7 +9,7 @@ import pandas as pd
 
 import nn_updates as nnS
 #import nn_missing_grads_lilc as nnDif
-import nn_updates_sorted_grads as nnDif
+import nn_missing_grads as nnDif
 import math
 import random
 from scipy.stats import multivariate_normal as norm
@@ -149,14 +149,14 @@ def iter_minibatches(chunksize, data, labels):
 def visitbatches(nn,data,labels, val_d, val_l, l, test_val, it=1000):
     for c in range(it):
       for cc in range(len(data)):
-	  nnDif.minibatch_fit(nn[0], data[cc], labels[cc])
+	  nnDif.master_node(nn, data[cc], labels[cc])
       if c %10 == 0:
         acc = accuracy(nn[0], val_d, val_l, thr = 0.5)
-        #acc1 = accuracy(nn[1], val_d, val_l, thr = 0.5)
-        #acc2 = accuracy(nn[2], val_d, val_l, thr = 0.5)
+        acc1 = accuracy(nn[1], val_d, val_l, thr = 0.5)
+        acc2 = accuracy(nn[2], val_d, val_l, thr = 0.5)
         l[0][test_val][c/10] = acc
-        #l[1][test_val][c/10] = acc1
-        #l[2][test_val][c/10] = acc2
+        l[1][test_val][c/10] = acc1
+        l[2][test_val][c/10] = acc2
         print acc
 
 
@@ -331,17 +331,17 @@ nat = range(10)
 for i in range(6):
     sing_run(i)
 #pool.map(sing_run,nat)
-np.savetxt("decent-remGrad-biasedMnist-s1-sortedGrads-fifth-2.txt",nn1Acc[0])
-np.savetxt("decent-remGrad-biasedMnist-s2-sortedGrads-fifth-2.txt",nn1Acc[1])
-np.savetxt("decent-remGrad-biasedMnist-s3-sortedGrads-fifth-2.txt",nn1Acc[2])
-np.savetxt("cent-remGrad-biasedMnist-sortedGrads-fifth-2.txt",classAcc)
+np.savetxt("decent-remGrad-s1-noFancy.txt",nn1Acc[0])
+np.savetxt("decent-remGrad-s2-noFancy.txt",nn1Acc[1])
+np.savetxt("decent-remGrad-s3-noFancy.txt",nn1Acc[2])
+np.savetxt("cent-remGrad-noFancy.txt",classAcc)
 #visitClassicBatches(nnHorn1,horn1_data,horn1_label,validation_data, validation_label,eights,te,it=iters)
 print "finished horn1"
-np.savetxt("eights-remGrad-biasedMnist-sortedGrads-fifth-2.txt",eights)    
+np.savetxt("eights-remGrad-noFancy.txt",eights)    
 #visitClassicBatches(nnHorn2,horn2_data,horn2_label,validation_data, validation_label,sevens,te,it=iters)
-np.savetxt("sevens-remGrad-biasedMnist-sortedGrads-fifth-2.txt",sevens)    
+np.savetxt("sevens-remGrad-noFancy.txt",sevens)    
 #visitClassicBatches(nnMiddle,middle_data,middle_label,validation_data, validation_label,zeros,te,it=iters)
-np.savetxt("zeros-remGrad-biasedMnist-sortedGrads-fifth-2.txt",zeros)
+np.savetxt("zeros-remGrad-noFancy.txt",zeros)
 
 
 

@@ -105,10 +105,8 @@ def forward(nn, data):
     :param data: a numpy n by m matrix where m in the number of input units in nn
     :return: the output layer activations
     """
-    #print "gogogo"
-    #print data
     nn['activations'] = [data.T]
-    #print data.T
+
     nn['zs'] = []
     for w, s, b in map(None, nn['weights'], nn['nonlin'], nn['biases']):
         z = np.dot(w, nn['activations'][-1]).T + b
@@ -135,8 +133,7 @@ def average_gradient(deltas, activations):
     dW = 0
     for i in range(deltas.shape[1]):
         dW += np.outer(deltas[:,i], activations[:,i].T)
-
-    return dW/deltas.shape[1]
+    return dW#/deltas.shape[1]
 
 def backprop(nn, delta):
     eta = nn['eta']
@@ -179,11 +176,9 @@ def expand_labels(labels):
 
 def minibatch_fit(nn, data, labels):
     r = forward(nn, data)
-    #print "gogo"
-    #print r[0]
-    #print labels.T
+    
     delta = d_cost(r, labels) #* dact(nn['zs'][-1])
-    #print delta
+
     backprop(nn, delta)
     # ipdb.set_trace()
     return np.sqrt(np.sum(np.square(r - labels))) / 2

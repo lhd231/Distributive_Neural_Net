@@ -16,13 +16,13 @@ print dict(zip(unique,counts))
 #plt.ylabel("Error rate")
 #print len(np.loadtxt("cent-sameBatch-all-2.txt")[0])
 #c4 = np.loadtxt("decent-remGrad-all-s2.txt")[:,:20]#np.loadtxt("zeros-sameBatch-all-test-2.txt")[:,:20]
-c3 = np.loadtxt("cent-remGrad-biasedMnist-sortedGrads-fifth-2.txt")[:,:50][:,1::5]#[:,1::50]#np.loadtxt("cent-sameBatch-all-test-5.txt")[:,:50]#[:,:10]
-c2 = np.loadtxt("decent-remGrad-biasedMnist-s1-sortedGrads-fifth-2.txt")[:,:50][:,1::5]#[:,1::50]#np.loadtxt("eights-sameBatch-all-test-5.txt")[:,:50]#[:,:10]
-c1 = np.loadtxt("decent-remGrad-biasedMnist-s2-sortedGrads-fifth-2.txt")[:,:50][:,1::5]#[:,1::50]#np.loadtxt("sevens-sameBatch-all-test-5.txt")[:,:50]#[:,:10]
-dif = np.loadtxt("decent-remGrad-biasedMnist-s3-sortedGrads-fifth-2.txt")[:,:50][:,1::5]#[:,1::50]#np.loadtxt("decent-sameBatch-all-test-5.txt")[:,:50]#[:,:10]
-cSite1 = np.loadtxt("eights-remGrad-biasedMnist-sortedGrads-fifth-2.txt")[:,:50][:,1::5]#[:,1::50]
-cSite2 = np.loadtxt("sevens-remGrad-biasedMnist-sortedGrads-fifth-2.txt")[:,:50][:,1::5]#[:,1::50]
-cSite3 = np.loadtxt("zeros-remGrad-biasedMnist-sortedGrads-fifth-2.txt")[:,:50][:,1::5]#[:,1::50]
+c3 = np.loadtxt("cent-remGrad-noFancy.txt")[:,:30][:,1::3]#[:,1::50]#np.loadtxt("cent-sameBatch-all-test-5.txt")[:,:50]#[:,:10]
+c2 = np.loadtxt("decent-remGrad-s1-noFancy.txt")[:,:30][:,1::3]#[:,1::50]#np.loadtxt("eights-sameBatch-all-test-5.txt")[:,:50]#[:,:10]
+c1 = np.loadtxt("decent-remGrad-s2-noFancy.txt")[:,:30][:,1::3]#[:,1::50]#np.loadtxt("sevens-sameBatch-all-test-5.txt")[:,:50]#[:,:10]
+dif = np.loadtxt("decent-remGrad-s3-noFancy.txt")[:,:30][:,1::3]#[:,1::50]#np.loadtxt("decent-sameBatch-all-test-5.txt")[:,:50]#[:,:10]
+cSite1 = np.loadtxt("eights-remGrad-noFancy.txt")[:,:30][:,1::3]#[:,1::50]
+cSite2 = np.loadtxt("sevens-remGrad-noFancy.txt")[:,:30][:,1::3]#[:,1::50]
+cSite3 = np.loadtxt("zeros-remGrad-noFancy.txt")[:,:30][:,1::3]#[:,1::50]
 
 
 #class2 = np.mean(c2, axis=0)
@@ -59,9 +59,9 @@ cSite3 = np.loadtxt("zeros-remGrad-biasedMnist-sortedGrads-fifth-2.txt")[:,:50][
 #axe = np.array(['horn2' for _ in range(10)])
 #c3w = np.c_[c4,axe]
 pal = seaborn.color_palette("hls",7)
-fw = np.concatenate((c3,dif), axis = 0)
+fw = np.concatenate((c3,c2), axis = 0)
 fw = np.concatenate((fw,c1), axis=0)
-fw = np.concatenate((fw,c2), axis=0)
+fw = np.concatenate((fw,dif), axis=0)
 fw = np.concatenate((fw,cSite1),axis=0)
 fw = np.concatenate((fw,cSite2),axis=0)
 fw = np.concatenate((fw,cSite3),axis=0)
@@ -72,7 +72,7 @@ fw = np.concatenate((fw,cSite3),axis=0)
 #fw = np.concatenate((fw,c2w), axis=0)
 #fw = np.concatenate((fw,c3w), axis=0)
 #fw = c3w
-col=range(50,550,50)
+col=range(30,330,30)
 s = pd.DataFrame(fw, columns=col)
 #s = pd.DataFrame({"error rate" : fw, "sample size" : [10,20,30,40,50,60,70,80,90,100,110,120,130,140,150,160,170,180,190,200,210,220,230,240,250,260,270,280,290,300,310,320,330,340,350,360,370,380,390,400,410,420,430,440,450,460,470,480,490,500]})
 #exercise = seaborn.load_dataset("exercise")
@@ -90,12 +90,14 @@ df_long = pd.melt(s,"class", var_name="Number of Iterations", value_name="Accura
 #seaborn.boxplot(data = df_long, hue_order="class")
 #seaborn.factorplot(data=df_long, x="sample size", hue="class", kind="violin")
 #seaborn.factorplot(x="sample size",y="error rate", data=df_long)
-g = seaborn.factorplot(x="Number of Iterations", y="Accuracy", hue="class",data=df_long,kind="box", palette = pal,size=5, aspect=2, legend = False)
+
+g = seaborn.factorplot(x="Number of Iterations", y="Accuracy", hue="class",data=df_long,kind="box", palette = pal,linewidth=.8,size=5, aspect=2, legend = False)
 g.despine(left=True)
 plt.legend(loc='lower right')
 #g.set_ylabels("survival probability")
+
 #seaborn.factorplot(x="sample size", y="error rate",data=df_long, kind="box")
-seaborn.plt.savefig("mixed_gradients_sorted-fith_grads-2.svg",bbox_inches="tight",pad_inches=0)
+seaborn.plt.savefig("removed_gradients.svg",bbox_inches="tight",pad_inches=0)
 seaborn.plt.show(g)
 #seaborn.factorplot("sample size", hue="class", y="error rate", data=df_long, kind="box")
 #seaborn.boxplot(data=dif)
